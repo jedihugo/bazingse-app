@@ -14,14 +14,6 @@
             BaZingSe
           </h1>
         </div>
-        <div class="ml-auto">
-          <button 
-            @click="showFAQ = !showFAQ"
-            class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            {{ showFAQ ? 'Close' : 'Help' }}
-          </button>
-        </div>
       </div>
     </header>
 
@@ -147,7 +139,7 @@
           </div>
 
           <!-- BaZi Chart Display -->
-          <div v-if="chartData && !isLoading" class="relative">
+          <div v-if="pillarsOrdered && !isLoading" class="relative">
             <!-- View Mode Toggle - Base, Post Interaction -->
             <div class="mb-4 max-w-lg">
               <div class="flex items-center gap-2">
@@ -195,11 +187,18 @@
                     ]"
                     :style="pillar.isUnknown ? {} : getNodeBgColor(pillar.stem.element, pillar.stem.color)"
                   >
+                    <!-- Transformation Badge (top-right corner) -->
+                    <div v-if="pillar.stemTransformBadge" 
+                         class="absolute top-1 right-1 w-6 h-6 flex items-center justify-center text-[10px] font-bold rounded-full shadow-md transform hover:scale-110 transition-transform"
+                         :style="getTransformBadgeStyle(pillar.stemTransformBadge)">
+                      {{ getTransformBadgeDisplay(pillar.stemTransformBadge) }}
+                    </div>
+                    
                     <!-- Pinyin name at top -->
                     <div v-if="!pillar.isUnknown" class="text-xs text-gray-700 mb-1">{{ pillar.stemName }}</div>
-                    <!-- Chinese character (show transformed if in transformed view) -->
+                    <!-- Chinese character (always show original from base) -->
                     <div class="text-2xl font-bold text-black">
-                      {{ showTransformed && pillar.stem.transformedChinese ? pillar.stem.transformedChinese : pillar.stem.chinese }}
+                      {{ pillar.stem.chinese }}
                     </div>
                     <!-- Element type -->
                     <div v-if="!pillar.isUnknown" class="text-xs text-gray-700">
@@ -219,8 +218,9 @@
                     
                     <!-- Horizontal WuXing Flow to Next Stem (only in post/transformed view) -->
                     <div v-if="viewMode !== 'base' && !pillar.isUnknown && index < 3 && !pillarsOrdered[index + 1].isUnknown && getWuXingRelation(pillar.stem.element, pillarsOrdered[index + 1].stem.element)"
-                         class="absolute -right-2.5 top-1/2 -translate-y-1/2 text-base font-bold z-20"
-                         :class="getWuXingRelationClass(pillar.stem.element, pillarsOrdered[index + 1].stem.element)">
+                         class="absolute -right-3 top-1/2 -translate-y-1/2 text-lg font-bold z-30"
+                         :class="getWuXingRelationClass(pillar.stem.element, pillarsOrdered[index + 1].stem.element)"
+                         :title="`${pillar.stem.element} to ${pillarsOrdered[index + 1].stem.element}`">
                       {{ getWuXingRelation(pillar.stem.element, pillarsOrdered[index + 1].stem.element) }}
                     </div>
                   </div>
@@ -228,12 +228,13 @@
               </div>
               
               <!-- Vertical WuXing Flow Indicators - Always present to maintain consistent spacing -->
-              <div class="grid grid-cols-4 gap-1 -mt-1.5 -mb-1.5 relative z-30">
+              <div class="grid grid-cols-4 gap-1 -mt-1.5 -mb-1.5 relative z-40">
                 <div v-for="(pillar, index) in pillarsOrdered" :key="`flow-${index}`" 
-                     class="flex justify-center items-center h-4">
+                     class="flex justify-center items-center h-5">
                   <div v-if="viewMode !== 'base' && !pillar.isUnknown && getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element)"
-                       class="text-base font-bold"
-                       :class="getVerticalWuXingClass(pillar.stem.element, pillar.branch.element)">
+                       class="text-lg font-bold"
+                       :class="getVerticalWuXingClass(pillar.stem.element, pillar.branch.element)"
+                       :title="`${pillar.stem.element} to ${pillar.branch.element}`">
                     {{ getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element) }}
                   </div>
                 </div>
@@ -256,18 +257,25 @@
                       aspectRatio: '1/1.2'  // 20% taller than square
                     }"
                   >
+                    <!-- Transformation Badge (top-right corner) -->
+                    <div v-if="pillar.branchTransformBadge" 
+                         class="absolute top-1 right-1 w-6 h-6 flex items-center justify-center text-[10px] font-bold rounded-full shadow-md transform hover:scale-110 transition-transform z-10"
+                         :style="getTransformBadgeStyle(pillar.branchTransformBadge)">
+                      {{ getTransformBadgeDisplay(pillar.branchTransformBadge) }}
+                    </div>
+                    
                     <!-- Main content with proper spacing from bottom -->
                     <div class="flex-1 flex flex-col items-center justify-center pb-10">
-                      <!-- Branch pinyin name or element name if transformed -->
+                      <!-- Branch pinyin name (always show original) -->
                       <div v-if="!pillar.isUnknown" class="text-xs text-gray-700 mb-1">
-                        {{ showTransformed && pillar.branch.transformedElement ? pillar.branch.transformedElement.replace('Yang ', '').replace('Yin ', '') : pillar.branchName }}
+                        {{ pillar.branchName }}
                       </div>
-                      <!-- Chinese character (show transformed if in transformed view) -->
+                      <!-- Chinese character (always show original from base) -->
                       <div class="text-2xl font-bold text-black">
-                        {{ showTransformed && pillar.branch.transformedChinese ? pillar.branch.transformedChinese : pillar.branch.chinese }}
+                        {{ pillar.branch.chinese }}
                       </div>
-                      <!-- Animal name (hide if transformed) -->
-                      <div v-if="!pillar.isUnknown && !(showTransformed && pillar.branch.transformedElement)" class="text-xs text-gray-800">{{ pillar.branch.animal }}</div>
+                      <!-- Animal name (always show) -->
+                      <div v-if="!pillar.isUnknown" class="text-xs text-gray-800">{{ pillar.branch.animal }}</div>
                     </div>
                     
                     <!-- Hidden Heavenly Stems - Anchored to bottom -->
@@ -292,8 +300,9 @@
                     
                     <!-- Horizontal WuXing Flow to Next Branch (only in post/transformed view) -->
                     <div v-if="viewMode !== 'base' && !pillar.isUnknown && index < 3 && !pillarsOrdered[index + 1].isUnknown && getWuXingRelation(pillar.branch.element, pillarsOrdered[index + 1].branch.element)"
-                         class="absolute -right-2.5 top-1/2 -translate-y-1/2 text-base font-bold z-40"
-                         :class="getWuXingRelationClass(pillar.branch.element, pillarsOrdered[index + 1].branch.element)">
+                         class="absolute -right-3 top-1/3 -translate-y-1/2 text-lg font-bold z-50"
+                         :class="getWuXingRelationClass(pillar.branch.element, pillarsOrdered[index + 1].branch.element)"
+                         :title="`${pillar.branch.element} to ${pillarsOrdered[index + 1].branch.element}`">
                       {{ getWuXingRelation(pillar.branch.element, pillarsOrdered[index + 1].branch.element) }}
                     </div>
                   </div>
@@ -750,15 +759,6 @@
         </div>
       </div>
 
-      <!-- Navigation -->
-      <div class="mt-8 text-center">
-        <NuxtLink 
-          to="/deep-dive" 
-          class="text-blue-600 hover:text-blue-800 text-sm font-medium"
-        >
-          Advanced Deep Dive Analysis →
-        </NuxtLink>
-      </div>
     </main>
   </div>
 </template>
@@ -772,7 +772,6 @@ const birthTime = ref('09:30')
 const gender = ref('female')
 const isLoading = ref(false)
 const chartData = ref(null)
-const showFAQ = ref(false)
 const unknownHour = ref(false)
 
 // Individual pillar inputs
@@ -827,9 +826,11 @@ function handleUnknownHourChange() {
 
 // Initialize on mount (client-side only)
 onMounted(() => {
+  console.log('Component mounted, initializing...')
   initializePillarInputs()
   // Generate initial chart after component mounts
   setTimeout(() => {
+    console.log('Calling generateChart from onMounted')
     generateChart()
   }, 100)
 })
@@ -846,7 +847,7 @@ const tooltipPosition = ref({ x: 0, y: 0 })
 // Element view state for transformation animation
 const elementView = ref('combined') // 'before', 'combined', or 'after'
 
-// View mode state: 'base' or 'post'
+// View mode state: 'base' or 'post' - default to 'post' to show energy flow
 const viewMode = ref('post')
 const showTransformed = computed(() => viewMode.value === 'post')
 
@@ -1049,210 +1050,204 @@ function getNode(nodeId) {
 
 // Computed properties
 const pillars = computed(() => {
-  // First try to use nodes data if available
-  if (nodes.value) {
-    // Build pillars from nodes
-    const buildPillarFromNodes = (hsId, ebId, label, isDayMaster = false) => {
-      const hsNode = getNode(hsId)
-      const ebNode = getNode(ebId)
+  // Simple direct access to node data as requested
+  if (!chartData.value) {
+    console.log('pillars computed: no chartData')
+    return null
+  }
+  
+  const data = chartData.value
+  const mappings = data.mappings || {}
+  console.log('pillars computed: has chartData, mappings:', !!mappings)
+  
+  // Helper to build pillar from node data
+  const buildPillar = (hsKey, ebKey, label, isDayMaster = false) => {
+    const hsNode = data[hsKey]
+    const ebNode = data[ebKey]
+    
+    if (!hsNode && !ebNode) return null
+    
+    // Use viewMode to determine which state to show (base or post)
+    const usePost = viewMode.value === 'post'
+    
+    // For stems: always use the base ID for the main character
+    // Store transformation_badge separately for display as a badge
+    const stemId = hsNode?.base?.id
+    const stemTransformBadge = usePost ? hsNode?.transformation_badge : null
+    
+    // Check if stem transformed to element name (like "Yang Metal")
+    const isElementName = stemId && stemId.includes(' ') && ['Yang', 'Yin'].some(p => stemId.startsWith(p))
+    
+    let stemChinese, stemElement, stemColor
+    
+    if (isElementName) {
+      // Handle element name transformations - map back to proper stem ID
+      const elementToStemMap = {
+        'Yang Metal': 'Geng',
+        'Yin Metal': 'Xin',
+        'Yang Water': 'Ren',
+        'Yin Water': 'Gui',
+        'Yang Wood': 'Jia',
+        'Yin Wood': 'Yi',
+        'Yang Fire': 'Bing',
+        'Yin Fire': 'Ding',
+        'Yang Earth': 'Wu',
+        'Yin Earth': 'Ji'
+      }
+      const actualStemId = elementToStemMap[stemId] || stemId
+      const stemMapping = mappings.heavenly_stems?.[actualStemId] || {}
+      stemChinese = stemMapping.chinese || actualStemId || '?'
+      stemElement = stemMapping.english || stemId
+      // Use regular color from mapping for stem transformations
+      stemColor = stemMapping.hex_color || hsNode?.hex_color || hsNode?.color || '#808080'
+    } else {
+      // Normal stem mapping
+      const stemMapping = mappings.heavenly_stems?.[stemId] || {}
+      stemChinese = stemMapping.chinese || stemId || '?'
+      stemElement = stemMapping.english || hsNode?.element || 'Unknown'
+      stemColor = stemMapping.hex_color || hsNode?.hex_color || hsNode?.color || '#808080'
+    }
+    
+    const stem = {
+      chinese: stemChinese,
+      element: stemElement,
+      color: stemColor
+    }
+    
+    // Get the proper stem name (pinyin) for display
+    let stemName
+    if (isElementName) {
+      // If it's an element name, get the corresponding stem ID
+      const elementToStemMap = {
+        'Yang Metal': 'Geng',
+        'Yin Metal': 'Xin',
+        'Yang Water': 'Ren',
+        'Yin Water': 'Gui',
+        'Yang Wood': 'Jia',
+        'Yin Wood': 'Yi',
+        'Yang Fire': 'Bing',
+        'Yin Fire': 'Ding',
+        'Yang Earth': 'Wu',
+        'Yin Earth': 'Ji'
+      }
+      stemName = elementToStemMap[stemId] || stemId
+    } else {
+      stemName = stemId || '?'
+    }
+    
+    // For branches: always use the base ID for the main character
+    // Store transformation_badge separately for display as a badge
+    const branchId = ebNode?.base?.id
+    const branchTransformBadge = usePost ? ebNode?.transformation_badge : null
+    
+    // Check if branch transformed to pure element (Fire, Water, etc)
+    const isElementTransformation = usePost && ['Fire', 'Water', 'Metal', 'Wood', 'Earth'].includes(branchId)
+    
+    let branchChinese, branchAnimal, branchElement, branchColor
+    
+    if (isElementTransformation) {
+      // Handle pure element transformation - use emphasized colors
+      const elementMap = {
+        'Fire': { chinese: '火', color: '#ff6b6b' },
+        'Water': { chinese: '水', color: '#4dabf7' },
+        'Metal': { chinese: '金', color: '#868e96' },
+        'Wood': { chinese: '木', color: '#51cf66' },
+        'Earth': { chinese: '土', color: '#fab005' }
+      }
+      branchChinese = elementMap[branchId]?.chinese || branchId
+      branchAnimal = branchId // Show element name instead of animal
+      branchElement = branchId
+      // Use emphasized color for pure element transformations
+      branchColor = elementMap[branchId]?.color || '#808080'
+    } else {
+      // Normal branch mapping
+      const branchMapping = mappings.earthly_branches?.[branchId] || {}
+      branchChinese = branchMapping.chinese || branchId || '?'
+      branchAnimal = branchMapping.animal || '?'
       
-      if (!hsNode && !ebNode) return null
-      
-      // Get the transformed element from post_qi if transformed
-      // Find the dominant element (highest score) in post_qi
-      const getStemTransformedElement = () => {
-        if (!hsNode?.transformed || !hsNode?.post_qi) return null
-        let maxScore = 0
-        let dominantElement = null
-        for (const [element, data] of Object.entries(hsNode.post_qi)) {
-          if (data.score > maxScore) {
-            maxScore = data.score
-            dominantElement = element
-          }
+      // Map branch ID to element (branches have dominant elements)
+      const branchToElement = {
+        'Zi': 'Water',   // Rat - Water
+        'Chou': 'Earth', // Ox - Earth
+        'Yin': 'Wood',   // Tiger - Wood
+        'Mao': 'Wood',   // Rabbit - Wood
+        'Chen': 'Earth', // Dragon - Earth
+        'Si': 'Fire',    // Snake - Fire
+        'Wu': 'Fire',    // Horse - Fire
+        'Wei': 'Earth',  // Goat - Earth
+        'Shen': 'Metal', // Monkey - Metal
+        'You': 'Metal',  // Rooster - Metal
+        'Xu': 'Earth',   // Dog - Earth
+        'Hai': 'Water'   // Pig - Water
+      }
+      branchElement = branchToElement[branchId] || 'Unknown'
+      branchColor = ebNode?.hex_color || ebNode?.color || branchMapping.hex_color || '#808080'
+    }
+    
+    const branch = {
+      chinese: branchChinese,
+      animal: branchAnimal,
+      element: branchElement,
+      color: branchColor
+    }
+    
+    // Hidden stems from eb.qi - use post.qi for post view, base.qi for base view
+    const hiddenQi = usePost ? (ebNode?.post?.qi || {}) : (ebNode?.base?.qi || {})
+    
+    // Ten gods for hidden stems should also be recalculated based on the qi being used
+    const hiddenStems = {}
+    if (hiddenQi && data.mappings?.ten_gods) {
+      const dayMasterStem = data.hs_d?.base?.id || 'Yi'
+      for (const stemName of Object.keys(hiddenQi)) {
+        const tenGodData = data.mappings?.ten_gods?.[dayMasterStem]?.[stemName]
+        if (tenGodData) {
+          hiddenStems[stemName] = tenGodData.id || tenGodData.abbreviation || 'Unknown'
         }
-        return dominantElement
-      }
-      
-      const getBranchTransformedElement = () => {
-        if (!ebNode?.transformed || !ebNode?.post_qi) return null
-        let maxScore = 0
-        let dominantElement = null
-        for (const [element, data] of Object.entries(ebNode.post_qi)) {
-          if (data.score > maxScore) {
-            maxScore = data.score
-            dominantElement = element
-          }
-        }
-        return dominantElement
-      }
-      
-      const stemTransformedElement = getStemTransformedElement()
-      const branchTransformedElement = getBranchTransformedElement()
-      
-      // Determine the effective element for the stem based on view mode and transformation
-      const effectiveStemElement = (showTransformed && stemTransformedElement) 
-        ? stemTransformedElement 
-        : `${hsNode?.polarity || 'Yang'} ${hsNode?.element || 'Unknown'}`
-      
-      // Get hex color from API or transformation
-      // For transformed stems, use the hex color of the transformed element
-      let stemColor = hsNode?.hex_color || hsNode?.color
-      if (showTransformed && hsNode?.transformation_hex_color) {
-        stemColor = hsNode.transformation_hex_color
-      } else if (showTransformed && hsNode?.transformation_color) {
-        // For pure element transformations with gradient
-        stemColor = hsNode.transformation_color
-      }
-      
-      const stem = hsNode ? {
-        chinese: stemMappings[hsNode.name] || hsNode.name,
-        element: effectiveStemElement,
-        color: stemColor,
-        transformedChinese: stemTransformedElement ? elementCharacterMappings[stemTransformedElement] || stemTransformedElement : null,
-        transformedElement: stemTransformedElement
-      } : { chinese: '?', element: 'Unknown' }
-      
-      // Determine the effective element for the branch based on view mode and transformation
-      const effectiveBranchElement = (showTransformed && branchTransformedElement) 
-        ? branchTransformedElement 
-        : `${ebNode?.polarity || 'Yang'} ${ebNode?.element || 'Unknown'}`
-      
-      // Get hex color from API or transformation
-      // For transformed branches, use the hex color of the transformed element
-      let branchColor = ebNode?.hex_color || ebNode?.color
-      if (showTransformed && ebNode?.transformation_hex_color) {
-        branchColor = ebNode.transformation_hex_color
-      } else if (showTransformed && ebNode?.transformation_color) {
-        // For pure element transformations with gradient
-        branchColor = ebNode.transformation_color
-      }
-      
-      const branch = ebNode ? {
-        chinese: branchMappings[ebNode.name] || ebNode.name,
-        animal: ebNode.animal,
-        element: effectiveBranchElement,
-        color: branchColor,
-        transformedChinese: branchTransformedElement ? elementCharacterMappings[branchTransformedElement] || branchTransformedElement : null,
-        transformedElement: branchTransformedElement
-      } : { chinese: '?', animal: '?', element: 'Unknown' }
-      
-      // Get hidden qi (hidden stems) from EB node
-      const hiddenStems = ebNode?.ten_gods_hidden || null
-      const hiddenQi = ebNode?.post_qi || ebNode?.qi || null  // Use unified qi structure
-      
-      return {
-        label,
-        stem,
-        stemName: hsNode?.name || '?',
-        branch,
-        branchName: ebNode?.name || '?',
-        stemKey: hsId,
-        branchKey: ebId,
-        hiddenStems,
-        hiddenQi,
-        tenGod: isDayMaster ? 'DM' : (hsNode?.ten_god || null),
-        transformed: hsNode?.transformed || ebNode?.transformed || false,
-        isUnknown: !hsNode && !ebNode,
-        // Add node-specific data
-        stemAlive: hsNode?.alive !== false,
-        branchAlive: ebNode?.alive !== false,
-        stemInteracted: hsNode?.interacted || false,
-        branchInteracted: ebNode?.interacted || false,
-        stemTransformed: hsNode?.transformed || false,
-        branchTransformed: ebNode?.transformed || false
       }
     }
     
     return {
-      year: buildPillarFromNodes('hs_y', 'eb_y', 'Year 年'),
-      month: buildPillarFromNodes('hs_m', 'eb_m', 'Month 月'),
-      day: buildPillarFromNodes('hs_d', 'eb_d', 'Day 日', true),
-      hour: buildPillarFromNodes('hs_h', 'eb_h', 'Hour 時') || {
-        label: '',
-        stem: { chinese: '?', element: 'Unknown' },
-        stemName: '?',
-        branch: { chinese: '?', animal: '?', element: 'Unknown' },
-        branchName: '?',
-        stemKey: 'hs_h',
-        branchKey: 'eb_h',
-        hiddenStems: null,
-        tenGod: null,
-        transformed: false,
-        isUnknown: true
-      }
+      label,
+      stem,
+      stemName: stemName,
+      branch,
+      branchName: branchId,
+      stemKey: hsKey,
+      branchKey: ebKey,
+      hiddenStems,
+      hiddenQi,
+      tenGod: isDayMaster ? 'DM' : null,
+      transformed: hsNode?.transformed || ebNode?.transformed || false,
+      isUnknown: !hsNode && !ebNode,
+      // Node status data
+      stemAlive: hsNode?.alive !== false,
+      branchAlive: ebNode?.alive !== false,
+      stemInteracted: hsNode?.interacted || false,
+      branchInteracted: ebNode?.interacted || false,
+      stemTransformed: hsNode?.transformed || false,
+      branchTransformed: ebNode?.transformed || false,
+      // Transformation badges
+      stemTransformBadge,
+      branchTransformBadge
     }
   }
   
-  // Fallback to old method if nodes not available
-  if (!activeChart.value) return null
+  const yearPillar = buildPillar('hs_y', 'eb_y', 'Year 年')
+  const monthPillar = buildPillar('hs_m', 'eb_m', 'Month 月')
+  const dayPillar = buildPillar('hs_d', 'eb_d', 'Day 日', true)
+  const hourPillar = buildPillar('hs_h', 'eb_h', 'Hour 時')
   
-  const chart = activeChart.value
-  
-  // Parse year pillar
-  const yearParsed = parsePillarForDisplay(chart.year_pillar.pillar, chart.year_pillar.transformed)
-  const year = {
-    label: 'Year 年',
-    stem: yearParsed.stem,
-    stemName: yearParsed.stemName,
-    branch: yearParsed.branch,
-    branchName: yearParsed.branchName,
-    stemKey: 'hs_y',
-    branchKey: 'eb_y',
-    hiddenStems: chart.year_pillar.ten_god_hidden,
-    tenGod: chart.year_pillar.ten_god_hs,
-    transformed: chart.year_pillar.transformed || false
+  // Check if we have at least the essential pillars (year, month, day)
+  if (!yearPillar || !monthPillar || !dayPillar) {
+    return null
   }
   
-  // Parse month pillar
-  const monthParsed = parsePillarForDisplay(chart.month_pillar.pillar, chart.month_pillar.transformed)
-  const month = {
-    label: 'Month 月',
-    stem: monthParsed.stem,
-    stemName: monthParsed.stemName,
-    branch: monthParsed.branch,
-    branchName: monthParsed.branchName,
-    stemKey: 'hs_m',
-    branchKey: 'eb_m',
-    hiddenStems: chart.month_pillar.ten_god_hidden,
-    tenGod: chart.month_pillar.ten_god_hs,
-    transformed: chart.month_pillar.transformed || false
-  }
-  
-  // Parse day pillar
-  const dayParsed = parsePillarForDisplay(chart.day_pillar.pillar, chart.day_pillar.transformed)
-  const day = {
-    label: 'Day 日',
-    stem: dayParsed.stem,
-    stemName: dayParsed.stemName,
-    branch: dayParsed.branch,
-    branchName: dayParsed.branchName,
-    stemKey: 'hs_d',
-    branchKey: 'eb_d',
-    hiddenStems: chart.day_pillar.ten_god_hidden,
-    tenGod: 'DM', // Day Master
-    transformed: chart.day_pillar.transformed || false
-  }
-  
-  // Parse hour pillar (may not exist if hour is unknown)
-  let hour = null
-  if (chart.hour_pillar) {
-    const hourParsed = parsePillarForDisplay(chart.hour_pillar.pillar, chart.hour_pillar.transformed)
-    hour = {
+  const result = {
+    year: yearPillar,
+    month: monthPillar,  
+    day: dayPillar,
+    hour: hourPillar || {
       label: 'Hour 時',
-      stem: hourParsed.stem,
-      stemName: hourParsed.stemName,
-      branch: hourParsed.branch,
-      branchName: hourParsed.branchName,
-      stemKey: 'hs_h',
-      branchKey: 'eb_h',
-      hiddenStems: chart.hour_pillar.ten_god_hidden,
-      tenGod: chart.hour_pillar.ten_god_hs,
-      transformed: chart.hour_pillar.transformed || false
-    }
-  } else {
-    // Create placeholder for unknown hour
-    hour = {
-      label: '',  // Empty label for unknown hour
       stem: { chinese: '?', element: 'Unknown' },
       stemName: '?',
       branch: { chinese: '?', animal: '?', element: 'Unknown' },
@@ -1266,7 +1261,8 @@ const pillars = computed(() => {
     }
   }
   
-  return { year, month, day, hour }
+  console.log('Simplified pillars from direct node access:', result)
+  return result
 })
 
 // Ordered pillars for mainstream display (left to right: Hour, Day, Month, Year)
@@ -1366,14 +1362,26 @@ const totalChange = computed(() => {
 })
 
 const interactions = computed(() => {
-  if (!chartData.value?.interaction_analysis?.interactions) return []
-  return chartData.value.interaction_analysis.interactions
+  // Handle both new format (direct interactions object) and wrapped format
+  const interactionsData = chartData.value?.interactions || chartData.value?.interaction_analysis?.interactions
+  if (!interactionsData) return []
+  
+  // If it's an object (new format), convert to array
+  if (typeof interactionsData === 'object' && !Array.isArray(interactionsData)) {
+    return Object.entries(interactionsData).map(([id, data]) => ({
+      id,
+      ...data
+    }))
+  }
+  
+  // If it's already an array, return as-is
+  return interactionsData
 })
 
 const nonNaturalInteractions = computed(() => {
-  if (!interactions.value) return []
+  if (!interactions.value || !Array.isArray(interactions.value)) return []
   return interactions.value.filter(i => {
-    return !i.type?.includes('NATURAL') && i.type !== 'SEASONAL_ADJUSTMENT'
+    return !i.type?.includes('NATURAL') && !i.type?.includes('ENERGY_FLOW') && i.type !== 'SEASONAL_ADJUSTMENT'
   })
 })
 
@@ -1400,7 +1408,10 @@ async function generateChart() {
   try {
     const response = await fetch(`/api/bazi/generate_natal_chart?birth_date=${birthDate.value}&birth_time=${timeParam}&gender=${gender.value}`)
     if (!response.ok) throw new Error('API request failed')
-    chartData.value = await response.json()
+    const data = await response.json()
+    console.log('Chart data received:', data)
+    chartData.value = data
+    console.log('chartData.value set, pillarsOrdered:', pillarsOrdered.value)
   } catch (error) {
     console.error('Error:', error)
     if (typeof window !== 'undefined') {
@@ -1408,6 +1419,7 @@ async function generateChart() {
     }
   } finally {
     isLoading.value = false
+    console.log('isLoading set to false')
   }
 }
 
@@ -1525,7 +1537,11 @@ function getHiddenStemsWithWeights(pillar) {
     for (const qi of qiData) {
       const percentage = Math.round((qi.score / totalScore) * 100)
       // Get ten god for this stem if available
-      const tenGod = pillar.hiddenStems?.[qi.stem] || ''
+      // Handle both string format and object format
+      const tenGodData = pillar.hiddenStems?.[qi.stem]
+      const tenGod = typeof tenGodData === 'string' 
+        ? tenGodData 
+        : tenGodData?.abbreviation || tenGodData?.id || ''
       // Use hex color from API if available, fallback to color, then null
       const stemColor = qi.hex_color || qi.color || null
       result[qi.stem] = { 
@@ -1624,8 +1640,10 @@ function formatInteractionType(type) {
     'DESTRUCTIONS': '破 Destructions',
     'HS_CONFLICT': '天干沖 Stem Conflicts',
     'HS_COMBINATION': '天干合 Stem Combinations',
-    'NATURAL_GENERATING': '生 Natural Generation',
-    'NATURAL_CONTROLLING': '剋 Natural Control'
+    'NATURAL_GENERATING': '生 Energy Flow (Generation)',
+    'NATURAL_CONTROLLING': '剋 Energy Flow (Control)',
+    'ENERGY_FLOW_GENERATING': '生 Energy Flow (Generation)',
+    'ENERGY_FLOW_CONTROLLING': '剋 Energy Flow (Control)'
   }
   return typeMap[type] || type
 }
@@ -1801,6 +1819,108 @@ function handleInteractionHover(interaction) {
   }
 }
 
+function getTransformBadgeDisplay(badge) {
+  if (!badge) return ''
+  
+  // Map stem IDs to their Chinese characters
+  const stemToChinese = {
+    'Jia': '甲', 'Yi': '乙', 'Bing': '丙', 'Ding': '丁',
+    'Wu': '戊', 'Ji': '己', 'Geng': '庚', 'Xin': '辛',
+    'Ren': '壬', 'Gui': '癸'
+  }
+  
+  // Map pure elements to their Chinese characters
+  const elementToChinese = {
+    'Wood': '木', 'Fire': '火', 'Earth': '土',
+    'Metal': '金', 'Water': '水'
+  }
+  
+  // Check if it's a stem ID
+  if (stemToChinese[badge]) {
+    return stemToChinese[badge]
+  }
+  
+  // Check if it's a pure element
+  if (elementToChinese[badge]) {
+    return elementToChinese[badge]
+  }
+  
+  // If it contains 'Yang' or 'Yin', extract the element part
+  if (badge.includes('Yang') || badge.includes('Yin')) {
+    const element = badge.replace('Yang ', '').replace('Yin ', '')
+    return elementToChinese[element] || badge
+  }
+  
+  // Default: return as is
+  return badge
+}
+
+function getTransformBadgeStyle(badge) {
+  if (!badge) return {}
+  
+  // Map stem IDs and elements to their hex colors from the mappings
+  const badgeColors = {
+    // Heavenly Stems colors
+    'Jia': '#c2d4be',    // Yang Wood - Light sage green
+    'Yi': '#d6e2bb',     // Yin Wood - Light lime green
+    'Bing': '#f3adae',   // Yang Fire - Light coral red
+    'Ding': '#f5d3b0',   // Yin Fire - Light peach
+    'Wu': '#e6ceb7',     // Yang Earth - Light tan
+    'Ji': '#efe3cc',     // Yin Earth - Light cream
+    'Geng': '#ccd8e6',   // Yang Metal - Light steel blue
+    'Xin': '#e6e8f7',    // Yin Metal - Light lavender
+    'Ren': '#b9cbff',    // Yang Water - Light sky blue
+    'Gui': '#e0e9ff',    // Yin Water - Light powder blue
+    // Pure Elements
+    'Wood': '#c9dcc4',   // Average of wood colors
+    'Fire': '#f4c0af',   // Average of fire colors
+    'Earth': '#ead9c2',  // Average of earth colors
+    'Metal': '#d9e0f2',  // Average of metal colors
+    'Water': '#cdd5ff',  // Average of water colors
+    // Yang/Yin Elements
+    'Yang Wood': '#c2d4be',
+    'Yin Wood': '#d6e2bb',
+    'Yang Fire': '#f3adae',
+    'Yin Fire': '#f5d3b0',
+    'Yang Earth': '#e6ceb7',
+    'Yin Earth': '#efe3cc',
+    'Yang Metal': '#ccd8e6',
+    'Yin Metal': '#e6e8f7',
+    'Yang Water': '#b9cbff',
+    'Yin Water': '#e0e9ff'
+  }
+  
+  const bgColor = badgeColors[badge] || '#fbbf24' // Default to yellow if not found
+  
+  // Calculate a darker text color for contrast
+  const textColor = getLightnessPercent(bgColor) > 70 ? '#1f2937' : '#ffffff'
+  
+  return {
+    backgroundColor: bgColor,
+    color: textColor,
+    border: `2px solid ${adjustBrightness(bgColor, -20)}`,
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+  }
+}
+
+// Helper function to calculate lightness percentage
+function getLightnessPercent(hexColor) {
+  const hex = hexColor.replace('#', '')
+  const r = parseInt(hex.substr(0, 2), 16)
+  const g = parseInt(hex.substr(2, 2), 16)
+  const b = parseInt(hex.substr(4, 2), 16)
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 * 100
+}
+
+// Helper function to adjust brightness
+function adjustBrightness(hexColor, percent) {
+  const hex = hexColor.replace('#', '')
+  const r = Math.max(0, Math.min(255, parseInt(hex.substr(0, 2), 16) + percent * 2.55))
+  const g = Math.max(0, Math.min(255, parseInt(hex.substr(2, 2), 16) + percent * 2.55))
+  const b = Math.max(0, Math.min(255, parseInt(hex.substr(4, 2), 16) + percent * 2.55))
+  return '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('')
+}
+
 function handleInteractionLeave() {
   hoveredInteraction.value = null
   highlightedNodes.value = []
@@ -1949,6 +2069,39 @@ function getPillarInteractionText(pillarIndex) {
 }
 
 // Branch mappings already defined above as branchMappings in EARTHLY_BRANCHES
+
+// Get energy flow between nodes based on API interactions
+function getEnergyFlowBetweenNodes(node1, node2, isHeavenlyStem = false) {
+  if (!interactions.value || !node1 || !node2) return null
+  
+  // Look for ENERGY_FLOW interactions that involve these nodes
+  for (const interaction of interactions.value) {
+    if (!interaction.type?.includes('ENERGY_FLOW')) continue
+    
+    const desc = interaction.description || ''
+    
+    // Check if this interaction involves our nodes
+    if (desc.includes(node1) && desc.includes(node2)) {
+      if (interaction.type === 'ENERGY_FLOW_GENERATING') {
+        // Check direction from description
+        if (desc.includes(`${node1} exhausts`) || desc.includes(`${node1} uses`)) {
+          return '→' // node1 generates for node2
+        } else if (desc.includes(`${node2} exhausts`) || desc.includes(`${node2} uses`)) {
+          return '←' // node2 generates for node1
+        }
+      } else if (interaction.type === 'ENERGY_FLOW_CONTROLLING') {
+        // Check direction from description
+        if (desc.includes(`${node1} uses energy`) && desc.includes(`control ${node2}`)) {
+          return '⇢' // node1 controls node2
+        } else if (desc.includes(`${node2} uses energy`) && desc.includes(`control ${node1}`)) {
+          return '⇠' // node2 controls node1
+        }
+      }
+    }
+  }
+  
+  return null
+}
 
 function getWuXingRelation(element1, element2) {
   // Extract base element names (remove Yang/Yin)

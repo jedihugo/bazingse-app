@@ -2,18 +2,18 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   
   // Extract parameters from the request
-  const { luck_pillar_index = 0, birth_date, birth_time, gender } = query
+  const { birth_date, birth_time, gender } = query
   
-  if (!birth_date || !birth_time || !gender) {
+  if (!birth_date || !gender) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Missing required parameters: birth_date, birth_time, gender'
+      statusMessage: 'Missing required parameters: birth_date, gender'
     })
   }
   
   try {
-    // Forward the request to the Python API
-    const apiUrl = `http://localhost:8008/generate_chart?luck_pillar_index=${luck_pillar_index}&birth_date=${birth_date}&birth_time=${encodeURIComponent(birth_time as string)}&gender=${gender}`
+    // Use the new /generate_natal_chart endpoint
+    const apiUrl = `http://localhost:8008/generate_natal_chart?birth_date=${birth_date}&birth_time=${encodeURIComponent(birth_time as string || 'unknown')}&gender=${gender}`
     
     console.log('Proxying request to:', apiUrl)
     

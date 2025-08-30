@@ -1,8 +1,18 @@
-import type { BaZiData, LuckPillar, AnnualPillar, MonthlyPillar, DailyPillar } from '~/types/bazi'
+import type { 
+  BaZiData, 
+  LuckPillar, 
+  AnnualPillar, 
+  MonthlyPillar, 
+  DailyPillar,
+  NatalChartResponse,
+  NatalChart,
+  Pillar
+} from '~/types/bazi'
 
 export const useBaziData = () => {
   // Reactive state
   const baziData = ref<BaZiData | null>(null)
+  const natalChartData = ref<NatalChartResponse | null>(null)
   const selectedLuckPillar = ref<LuckPillar | null>(null)
   const selectedAnnualLuck = ref<AnnualPillar | null>(null)
   const selectedMonthlyLuck = ref<MonthlyPillar | null>(null)
@@ -14,166 +24,166 @@ export const useBaziData = () => {
   const DIRECT_API_URL = 'http://localhost:8008'
   const PROXY_API_URL = '/api/bazi' // Nuxt server proxy route
 
-  // Sample data for initial display (if needed)
-  const sampleData: BaZiData = {
-    "natal_chart": {
-      "year_pillar": {
-        "pillar": "Bing Yin",
-        "hs_element": "Fire",
-        "eb_animal": "Tiger",
-        "ten_god_hs": "RW",
-        "ten_god_hidden": {
-          "Jia": "DR",
-          "Wu": "HO", 
-          "Bing": "RW"
-        }
-      },
-      "month_pillar": {
-        "pillar": "Ji Hai",
-        "hs_element": "Earth",
-        "eb_animal": "Pig",
-        "ten_god_hs": "EG",
-        "ten_god_hidden": {
-          "Ren": "DO",
-          "Jia": "DR"
-        }
-      },
-      "day_pillar": {
-        "pillar": "Ding Chou",
-        "hs_element": "Fire",
-        "eb_animal": "Ox",
-        "ten_god_hs": "Day Master",
-        "ten_god_hidden": {
-          "Ji": "EG",
-          "Gui": "7K",
-          "Xin": "IW"
-        }
-      },
-      "hour_pillar": {
-        "pillar": "Ding Wei",
-        "hs_element": "Fire",
-        "eb_animal": "Goat",
-        "ten_god_hs": "F",
-        "ten_god_hidden": {
-          "Ji": "EG",
-          "Yi": "IR",
-          "Ding": "F"
-        }
+  // Helper function to extract Ten Gods from the new API format
+  const extractTenGodsFromNode = (nodeData: any, mappings: any, dayMaster: string): { [key: string]: string } => {
+    const tenGods: { [key: string]: string } = {}
+    
+    if (!nodeData?.post?.qi || !mappings?.ten_gods) return tenGods
+    
+    // Get ten gods for each stem in the qi
+    Object.keys(nodeData.post.qi).forEach(stemName => {
+      if (mappings.ten_gods[dayMaster] && mappings.ten_gods[dayMaster][stemName]) {
+        // Get the abbreviated ten god value
+        const fullTenGod = mappings.ten_gods[dayMaster][stemName]
+        tenGods[stemName] = getTenGodAbbreviation(fullTenGod)
       }
-    },
-    "luck_pillars": [
-      {
-        "pillar": "Geng Zi",
-        "year": "~1989-1998",
-        "age": "~3-12",
-        "hs_element": "Metal",
-        "eb_animal": "Rat",
-        "ten_god_hs": "DW",
-        "ten_god_hidden": {
-          "Gui": "7K",
-          "Ren": "DO"
-        }
-      },
-      {
-        "pillar": "Xin Chou",
-        "year": "~1999-2008",
-        "age": "~13-22",
-        "hs_element": "Metal",
-        "eb_animal": "Ox",
-        "ten_god_hs": "IW",
-        "ten_god_hidden": {
-          "Ji": "EG",
-          "Gui": "7K",
-          "Xin": "IW"
-        }
-      },
-      {
-        "pillar": "Ren Yin",
-        "year": "~2009-2018",
-        "age": "~23-32",
-        "hs_element": "Water",
-        "eb_animal": "Tiger",
-        "ten_god_hs": "DO",
-        "ten_god_hidden": {
-          "Jia": "DR",
-          "Wu": "HO",
-          "Bing": "RW"
-        }
-      },
-      {
-        "pillar": "Gui Mao",
-        "year": "~2019-2028",
-        "age": "~33-42",
-        "hs_element": "Water",
-        "eb_animal": "Rabbit",
-        "ten_god_hs": "7K",
-        "ten_god_hidden": {
-          "Yi": "IR"
-        }
-      },
-      {
-        "pillar": "Jia Chen",
-        "year": "~2029-2038",
-        "age": "~43-52",
-        "hs_element": "Wood",
-        "eb_animal": "Dragon",
-        "ten_god_hs": "DR",
-        "ten_god_hidden": {
-          "Wu": "HO",
-          "Yi": "IR",
-          "Gui": "7K"
-        }
-      },
-      {
-        "pillar": "Yi Si",
-        "year": "~2039-2048",
-        "age": "~53-62",
-        "hs_element": "Wood",
-        "eb_animal": "Snake",
-        "ten_god_hs": "IR",
-        "ten_god_hidden": {
-          "Bing": "RW",
-          "Wu": "HO",
-          "Geng": "DW"
-        }
-      },
-      {
-        "pillar": "Bing Wu",
-        "year": "~2049-2058",
-        "age": "~63-72",
-        "hs_element": "Fire",
-        "eb_animal": "Horse",
-        "ten_god_hs": "RW",
-        "ten_god_hidden": {
-          "Ding": "F",
-          "Ji": "EG"
-        }
-      },
-      {
-        "pillar": "Ding Wei",
-        "year": "~2059-2068",
-        "age": "~73-82",
-        "hs_element": "Fire",
-        "eb_animal": "Goat",
-        "ten_god_hs": "F",
-        "ten_god_hidden": {
-          "Ji": "EG",
-          "Yi": "IR",
-          "Ding": "F"
-        }
-      }
-    ],
-    "selected_luck_pillar": {
-      "pillar": "Gui Mao",
-      "year": "~2019-2028",
-      "age": "~33-42",
-      "hs_element": "Water",
-      "eb_animal": "Rabbit",
-      "ten_god_hs": "7K",
-      "ten_god_hidden": {
-        "Yi": "IR"
+    })
+    
+    return tenGods
+  }
+
+  // Helper function to convert ten god names to abbreviations
+  const getTenGodAbbreviation = (tenGod: string): string => {
+    const abbreviations: { [key: string]: string } = {
+      'Friend': 'F',
+      'Rob Wealth': 'RW',
+      'Eating God': 'EG',
+      'Hurting Officer': 'HO',
+      'Direct Wealth': 'DW',
+      'Indirect Wealth': 'IW',
+      'Direct Officer': 'DO',
+      '7 Killings': '7K',
+      'Direct Resource': 'DR',
+      'Indirect Resource': 'IR',
+      'Day Master': 'Day Master'
+    }
+    return abbreviations[tenGod] || tenGod
+  }
+
+  // Helper function to transform new API response to legacy format
+  const transformToLegacyFormat = (apiResponse: NatalChartResponse): BaZiData => {
+    if (!apiResponse) {
+      throw new Error('No API response to transform')
+    }
+
+    // Get the day master stem ID (not the English name)
+    const dayMaster = apiResponse.hs_d?.base?.id || apiResponse.hs_d?.post?.id || 'Yi'
+    const mappings = apiResponse.mappings
+    
+    // Debug logging (can be commented out in production)
+    // console.log('Day Master for transformation:', dayMaster)
+    // console.log('Available mappings:', {
+    //   hasStemsMapping: !!mappings?.heavenly_stems,
+    //   hasBranchesMapping: !!mappings?.earthly_branches,
+    //   hasTenGodsMapping: !!mappings?.ten_gods,
+    //   tenGodsForDayMaster: mappings?.ten_gods?.[dayMaster] ? Object.keys(mappings.ten_gods[dayMaster]).length : 0
+    // })
+
+    // Helper to create a pillar from nodes
+    const createPillarFromNodes = (hsNode: any, ebNode: any, pillarName?: string): Pillar => {
+      const hsId = hsNode?.base?.id || hsNode?.post?.id || ''
+      const ebId = ebNode?.base?.id || ebNode?.post?.id || ''
+      
+      // For transformed earthly branches, use the base ID for pillar name
+      // but we'll note the transformation separately
+      const hsIdFinal = hsId
+      const ebIdFinal = ebNode?.transformed ? (ebNode?.base?.id || ebId) : ebId
+      
+      // Debug logging (can be commented out in production)
+      // console.log(`Creating pillar ${pillarName || 'unknown'}:`, {
+      //   hsId: hsIdFinal,
+      //   ebId: ebIdFinal,
+      //   hsTransformed: hsNode?.transformed,
+      //   ebTransformed: ebNode?.transformed
+      // })
+      
+      // Get element and animal from mappings
+      const hsElement = mappings?.heavenly_stems?.[hsIdFinal]?.english || 'Unknown'
+      const ebAnimal = mappings?.earthly_branches?.[ebIdFinal]?.animal || 'Unknown'
+      
+      // Get ten god for heavenly stem
+      const tenGodHs = mappings?.ten_gods?.[dayMaster]?.[hsIdFinal] 
+        ? getTenGodAbbreviation(mappings.ten_gods[dayMaster][hsIdFinal])
+        : 'Unknown'
+      
+      // Get ten gods for hidden stems
+      const tenGodsHidden = extractTenGodsFromNode(ebNode, mappings, dayMaster)
+      
+      return {
+        pillar: `${hsIdFinal} ${ebIdFinal}`,
+        hs_element: hsElement,
+        eb_animal: ebAnimal,
+        ten_god_hs: tenGodHs,
+        ten_god_hidden: tenGodsHidden
       }
     }
+
+    // Create natal chart from nodes
+    const natalChart: NatalChart = {
+      year_pillar: createPillarFromNodes(apiResponse.hs_y, apiResponse.eb_y, 'year'),
+      month_pillar: createPillarFromNodes(apiResponse.hs_m, apiResponse.eb_m, 'month'),
+      day_pillar: createPillarFromNodes(apiResponse.hs_d, apiResponse.eb_d, 'day'),
+      hour_pillar: (apiResponse.hs_h && apiResponse.eb_h)
+        ? createPillarFromNodes(apiResponse.hs_h, apiResponse.eb_h, 'hour')
+        : {
+            pillar: 'Unknown Unknown',
+            hs_element: 'Unknown',
+            eb_animal: 'Unknown',
+            ten_god_hs: 'Unknown',
+            ten_god_hidden: {}
+          }
+    }
+
+    // Generate mock luck pillars (since the natal chart endpoint doesn't provide them)
+    // In a real implementation, you'd need to call a separate endpoint for luck pillars
+    const mockLuckPillars: LuckPillar[] = generateMockLuckPillars(apiResponse.birth_info.date, dayMaster, mappings)
+
+    return {
+      natal_chart: natalChart,
+      luck_pillars: mockLuckPillars,
+      selected_luck_pillar: mockLuckPillars[3] || mockLuckPillars[0] // Default to 4th pillar or first
+    }
+  }
+
+  // Generate mock luck pillars (temporary until we integrate the luck pillar endpoint)
+  const generateMockLuckPillars = (birthDate: string, dayMaster: string, mappings: any): LuckPillar[] => {
+    const birthYear = new Date(birthDate).getFullYear()
+    
+    // Sample luck pillars data structure
+    const samplePillars = [
+      { hs: 'Geng', eb: 'Zi', startAge: 3 },
+      { hs: 'Xin', eb: 'Chou', startAge: 13 },
+      { hs: 'Ren', eb: 'Yin', startAge: 23 },
+      { hs: 'Gui', eb: 'Mao', startAge: 33 },
+      { hs: 'Jia', eb: 'Chen', startAge: 43 },
+      { hs: 'Yi', eb: 'Si', startAge: 53 },
+      { hs: 'Bing', eb: 'Wu', startAge: 63 },
+      { hs: 'Ding', eb: 'Wei', startAge: 73 }
+    ]
+
+    return samplePillars.map((pillarData, idx) => {
+      const tenGodsHidden: { [key: string]: string } = {}
+      
+      // Add some default hidden stems based on the earthly branch
+      // This is simplified - the real API would provide accurate data
+      if (mappings?.earthly_branches?.[pillarData.eb]) {
+        // Add placeholder ten gods
+        tenGodsHidden['Sample'] = 'DR'
+      }
+
+      return {
+        pillar: `${pillarData.hs} ${pillarData.eb}`,
+        year: `~${birthYear + pillarData.startAge}-${birthYear + pillarData.startAge + 9}`,
+        age: `~${pillarData.startAge}-${pillarData.startAge + 9}`,
+        index: idx,
+        hs_element: mappings?.heavenly_stems?.[pillarData.hs]?.english || 'Unknown',
+        eb_animal: mappings?.earthly_branches?.[pillarData.eb]?.animal || 'Unknown',
+        ten_god_hs: mappings?.ten_gods?.[dayMaster]?.[pillarData.hs] 
+          ? getTenGodAbbreviation(mappings.ten_gods[dayMaster][pillarData.hs])
+          : 'Unknown',
+        ten_god_hidden: tenGodsHidden
+      }
+    })
   }
 
   // Function to generate chart from API (with fallback to proxy)
@@ -183,43 +193,10 @@ export const useBaziData = () => {
     
     // Try direct API first, then fallback to proxy
     const tryDirectAPI = async () => {
-      // Align with backend's expected request format
-      const requestBody = {
-        birth_date: birthDate,
-        birth_time: birthTime,
-        gender: gender,
-        include_10_year_luck: true,
-        luck_pillar_10_year_index: luckPillarIndex,
-        include_annual_luck: true,
-        annual_year: new Date().getFullYear()
-      }
+      const encodedTime = encodeURIComponent(birthTime || 'unknown')
+      const url = `${DIRECT_API_URL}/generate_natal_chart?birth_date=${birthDate}&birth_time=${encodedTime}&gender=${gender}`
       
-      console.log('Trying direct API call with body:', requestBody)
-      
-      // Try POST method first (backend may prefer this)
-      try {
-        const response = await fetch(`${DIRECT_API_URL}/generate_chart`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-          mode: 'cors',
-          body: JSON.stringify(requestBody)
-        })
-        
-        if (response.ok) {
-          return await response.json()
-        }
-      } catch (postError) {
-        console.log('POST method failed, trying GET method')
-      }
-      
-      // Fallback to original GET method
-      const encodedTime = encodeURIComponent(birthTime)
-      const url = `${DIRECT_API_URL}/generate_chart?luck_pillar_index=${luckPillarIndex}&birth_date=${birthDate}&birth_time=${encodedTime}&gender=${gender}`
-      
-      console.log('Trying direct API GET call to:', url)
+      console.log('Trying direct API call to:', url)
       
       const response = await fetch(url, {
         method: 'GET',
@@ -238,7 +215,7 @@ export const useBaziData = () => {
     }
     
     const tryProxyAPI = async () => {
-      const url = `${PROXY_API_URL}?luck_pillar_index=${luckPillarIndex}&birth_date=${birthDate}&birth_time=${encodeURIComponent(birthTime)}&gender=${gender}`
+      const url = `${PROXY_API_URL}?birth_date=${birthDate}&birth_time=${encodeURIComponent(birthTime || 'unknown')}&gender=${gender}`
       
       console.log('Trying proxy API call to:', url)
       
@@ -249,20 +226,25 @@ export const useBaziData = () => {
     
     try {
       // Try direct API first
-      let data
+      let data: NatalChartResponse
       try {
         data = await tryDirectAPI()
         console.log('Direct API call successful')
-      } catch (directError) {
+      } catch (directError: any) {
         console.log('Direct API failed, trying proxy:', directError.message)
         data = await tryProxyAPI()
         console.log('Proxy API call successful')
       }
       
-      baziData.value = data
-      selectedLuckPillar.value = data.selected_luck_pillar
+      // Store the raw natal chart response
+      natalChartData.value = data
       
-      console.log('API response received:', data)
+      // Transform to legacy format for UI compatibility
+      const transformedData = transformToLegacyFormat(data)
+      baziData.value = transformedData
+      selectedLuckPillar.value = transformedData.selected_luck_pillar
+      
+      console.log('BaZi chart generated successfully')
     } catch (err: any) {
       console.error('Both API calls failed:', err)
       
@@ -304,18 +286,11 @@ export const useBaziData = () => {
       return
     }
     
-    // Find the index of this pillar in the luck_pillars array
-    const pillarIndex = baziData.value?.luck_pillars.findIndex(p => p.pillar === pillar.pillar) ?? -1
-    
-    if (pillarIndex !== -1 && birthDate && birthTime && gender) {
-      // Fetch updated data from API with the selected luck pillar index
-      await generateChart(birthDate, birthTime, gender, pillarIndex)
-    } else {
-      // Fallback to client-side selection if no birth data available
-      selectedLuckPillar.value = pillar
-      if (baziData.value) {
-        baziData.value.selected_luck_pillar = pillar
-      }
+    // For now, just select the pillar locally
+    // In the future, this could fetch additional data from the API
+    selectedLuckPillar.value = pillar
+    if (baziData.value) {
+      baziData.value.selected_luck_pillar = pillar
     }
     
     // Reset annual luck selection when changing luck pillar
@@ -390,6 +365,7 @@ export const useBaziData = () => {
 
   return {
     baziData: readonly(baziData),
+    natalChartData: readonly(natalChartData),
     selectedLuckPillar: readonly(selectedLuckPillar),
     selectedAnnualLuck: readonly(selectedAnnualLuck),
     selectedMonthlyLuck: readonly(selectedMonthlyLuck),
