@@ -12,8 +12,8 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
-    // Use the new /generate_natal_chart endpoint
-    const apiUrl = `http://localhost:8008/generate_natal_chart?birth_date=${birth_date}&birth_time=${encodeURIComponent(birth_time as string || 'unknown')}&gender=${gender}`
+    // Use the /analyze_bazi endpoint (no /api prefix for direct backend call)
+    const apiUrl = `http://localhost:8008/analyze_bazi?birth_date=${birth_date}&birth_time=${encodeURIComponent(birth_time as string || 'unknown')}&gender=${gender}`
     
     console.log('Proxying request to:', apiUrl)
     
