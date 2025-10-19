@@ -6,13 +6,16 @@ import type {
   DailyPillar,
   NatalChartResponse,
   NatalChart,
-  Pillar
+  Pillar,
+  LuckPillarData,
+  LuckPillarResponse
 } from '~/types/bazi'
 
 export const useBaziData = () => {
   // Reactive state
   const baziData = ref<BaZiData | null>(null)
   const natalChartData = ref<NatalChartResponse | null>(null)
+  const currentLuckPillar = ref<LuckPillarData | null>(null)  // Current 10-year luck pillar
   const selectedLuckPillar = ref<LuckPillar | null>(null)
   const selectedAnnualLuck = ref<AnnualPillar | null>(null)
   const selectedMonthlyLuck = ref<MonthlyPillar | null>(null)
@@ -186,6 +189,34 @@ export const useBaziData = () => {
     })
   }
 
+  // Function to fetch 10-year luck pillar data
+  const fetchLuckPillar = async (birthDate: string, birthTime: string, gender: string): Promise<LuckPillarData | null> => {
+    try {
+      const encodedTime = encodeURIComponent(birthTime || 'unknown')
+      const url = `${DIRECT_API_URL}/generate_10lp_chart?birth_date=${birthDate}&birth_time=${encodedTime}&gender=${gender}`
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors'
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Luck pillar API returned ${response.status}`)
+      }
+      
+      const data: LuckPillarResponse = await response.json()
+      return data.current_luck_pillar
+    } catch (err: any) {
+      console.error('Failed to fetch luck pillar:', err)
+      // Don't throw - just return null so natal chart can still display
+      return null
+    }
+  }
+
   // Function to generate chart from API (with fallback to proxy)
   const generateChart = async (birthDate: string, birthTime: string, gender: string, luckPillarIndex: number = 0) => {
     isLoading.value = true
@@ -225,28 +256,34 @@ export const useBaziData = () => {
     }
     
     try {
-      // Try direct API first
-      let data: NatalChartResponse
-      try {
-        data = await tryDirectAPI()
-        console.log('Direct API call successful')
-      } catch (directError: any) {
-        console.log('Direct API failed, trying proxy:', directError.message)
-        data = await tryProxyAPI()
-        console.log('Proxy API call successful')
-      }
+      // Fetch natal chart and luck pillar in parallel
+      const [natalData, luckData] = await Promise.all([
+        (async () => {
+          try {
+            return await tryDirectAPI()
+          } catch (directError: any) {
+            console.log('Direct API failed, trying proxy:', directError.message)
+            return await tryProxyAPI()
+          }
+        })(),
+        fetchLuckPillar(birthDate, birthTime, gender)
+      ])
       
       // Store the raw natal chart response
-      natalChartData.value = data
+      natalChartData.value = natalData
+      
+      // Store current luck pillar
+      currentLuckPillar.value = luckData
       
       // Transform to legacy format for UI compatibility
-      const transformedData = transformToLegacyFormat(data)
+      const transformedData = transformToLegacyFormat(natalData)
       baziData.value = transformedData
       selectedLuckPillar.value = transformedData.selected_luck_pillar
       
-      console.log('BaZi chart generated successfully')
+      console.log('BaZi chart and luck pillar generated successfully')
+      console.log('Current luck pillar:', luckData)
     } catch (err: any) {
-      console.error('Both API calls failed:', err)
+      console.error('API calls failed:', err)
       
       // More specific error messages for backend integration
       if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
@@ -366,6 +403,7 @@ export const useBaziData = () => {
   return {
     baziData: readonly(baziData),
     natalChartData: readonly(natalChartData),
+    currentLuckPillar: readonly(currentLuckPillar),  // Current 10-year luck pillar
     selectedLuckPillar: readonly(selectedLuckPillar),
     selectedAnnualLuck: readonly(selectedAnnualLuck),
     selectedMonthlyLuck: readonly(selectedMonthlyLuck),

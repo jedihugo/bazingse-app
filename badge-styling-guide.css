@@ -1,0 +1,72 @@
+/* Transformation Badge Styling Guide for BaZi Nodes */
+
+/* Container for the node (relative positioning for badge) */
+.bazi-node {
+  position: relative;
+  /* Your existing node styles */
+  overflow: hidden; /* Ensures badge doesn't extend outside */
+}
+
+/* Subtle transformation badge */
+.transformation-badge {
+  /* Positioning - top right corner, inside the node */
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  
+  /* Size - small and subtle */
+  font-size: 0.65rem; /* Or about 10px if base is 16px */
+  line-height: 1;
+  padding: 2px 4px;
+  
+  /* Visual style - subtle and seamless */
+  background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white */
+  color: #666; /* Gray text for subtlety */
+  border: 1px solid rgba(0, 0, 0, 0.1); /* Very light border */
+  border-radius: 3px;
+  
+  /* Ensure it stays within bounds */
+  max-width: 30%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  
+  /* Subtle shadow for depth */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  
+  /* Animation for smooth appearance */
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+/* Hover state - slightly more visible */
+.bazi-node:hover .transformation-badge {
+  opacity: 0.9;
+}
+
+/* Alternative: Even more subtle - just text overlay */
+.transformation-badge-minimal {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none; /* Don't interfere with node interactions */
+}
+
+/* Color-coded badges based on element */
+.transformation-badge.wood { color: #2d7a2d; background-color: rgba(76, 175, 80, 0.1); }
+.transformation-badge.fire { color: #d32f2f; background-color: rgba(244, 67, 54, 0.1); }
+.transformation-badge.earth { color: #8d6e63; background-color: rgba(121, 85, 72, 0.1); }
+.transformation-badge.metal { color: #616161; background-color: rgba(158, 158, 158, 0.1); }
+.transformation-badge.water { color: #1976d2; background-color: rgba(33, 150, 243, 0.1); }
+
+/* Example HTML structure:
+<div class="bazi-node">
+  <div class="node-content">Wu</div>
+  <span class="transformation-badge fire">Fire</span>
+</div>
+*/

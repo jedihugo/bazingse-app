@@ -86,6 +86,43 @@ export interface Mappings {
   ten_gods: { [key: string]: { [key: string]: string } }
 }
 
+// Luck pillar timing information
+export interface LuckPillarTiming {
+  start_datetime: string
+  end_datetime: string
+  start_age: number
+  end_age: number
+  start_year: number
+  start_month: number
+  start_day: number
+  start_hour: number
+  end_year: number
+  end_month: number
+  end_day: number
+  end_hour: number
+  duration_days: number
+  duration_years: number
+}
+
+// Luck pillar from API response
+export interface LuckPillarData {
+  index: number
+  pillar: string
+  hs_element: string
+  eb_animal: string
+  ten_god_hs: string
+  ten_god_hidden: { [key: string]: string }
+  timing: LuckPillarTiming
+  is_current: boolean
+}
+
+// Luck pillar response from /generate_10lp_chart
+export interface LuckPillarResponse {
+  luck_pillars: LuckPillarData[]
+  current_luck_pillar: LuckPillarData | null
+  luck_calculation_details: any
+}
+
 // Main natal chart response structure
 export interface NatalChartResponse {
   birth_info: BirthInfo
@@ -102,6 +139,8 @@ export interface NatalChartResponse {
   interactions: Interactions
   daymaster_analysis: DaymasterAnalysis
   mappings: Mappings
+  // Optional luck pillar data (for integrated display)
+  current_luck_pillar?: LuckPillarData
 }
 
 // Legacy structures for backward compatibility
