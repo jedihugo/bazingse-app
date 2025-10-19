@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
     }
   }
   
-  const apiUrl = `http://localhost:8008/analyze-bazi?${params.toString()}`
+  const apiUrl = `http://localhost:8008/analyze_bazi?${params.toString()}`
   
   console.log('Proxying request to:', apiUrl)
   

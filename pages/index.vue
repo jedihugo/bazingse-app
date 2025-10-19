@@ -79,7 +79,7 @@
           </div>
           
           <!-- Column Headers: Each input aligned with pillar below (9 columns max) -->
-          <div class="flex gap-1 mb-2 overflow-x-auto">
+          <div class="flex gap-1 mb-2 overflow-x-auto items-center">
             
             <!-- Column 1: Hour (Natal) -->
             <div class="w-28 flex-shrink-0">
@@ -155,6 +155,13 @@
               />
             </div>
             
+            <!-- Left Partition Divider (before 10Y Luck) -->
+            <div v-if="chartData?.analysis_info?.has_luck_pillar" 
+                 class="relative flex-shrink-0 mx-3 self-stretch" 
+                 style="width: 2px; min-height: 60px;">
+              <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+            </div>
+            
             <!-- Column 5: 10-Year Luck (Label) -->
             <div v-if="chartData?.analysis_info?.has_luck_pillar" class="w-28 flex-shrink-0">
               <label class="block text-[10px] font-semibold text-purple-700 mb-1 text-center">運 10Y Luck</label>
@@ -165,59 +172,140 @@
               </div>
             </div>
             
-            <!-- Column 6: Annual (Analysis Year) -->
-            <div v-if="showAnalysisPeriod && chartData?.analysis_info?.has_annual" class="w-28 flex-shrink-0">
-              <label class="block text-[10px] font-semibold text-orange-700 mb-1 text-center">年運 Annual</label>
+            <!-- Right Partition Divider (after 10Y Luck) -->
+            <div v-if="chartData?.analysis_info?.has_luck_pillar" 
+                 class="relative flex-shrink-0 mx-3 self-stretch" 
+                 style="width: 2px; min-height: 60px;">
+              <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+            </div>
+            
+            <!-- Column 6: Annual (Analysis Year) - Always show when time travel mode is ON -->
+            <div v-if="showAnalysisPeriod" class="w-28 flex-shrink-0">
+              <div class="flex items-center justify-center gap-1 mb-1">
+                <input 
+                  type="checkbox" 
+                  v-model="includeAnnualLuck" 
+                  class="w-2.5 h-2.5 rounded cursor-pointer"
+                  style="accent-color: #C9B037;"
+                  @change="handleInputChange"
+                  title="Include Annual Luck in calculations"
+                />
+                <label class="text-[10px] font-semibold text-center cursor-pointer" 
+                       :style="includeAnnualLuck ? 'color: #8B7355;' : 'color: #9CA3AF;'"
+                       @click="includeAnnualLuck = !includeAnnualLuck; handleInputChange()"
+                       title="Click to toggle Annual Luck inclusion">
+                  年運 Annual
+                </label>
+              </div>
               <input
                 v-model.number="analysisYear"
                 type="number"
                 min="1900"
                 max="2100"
                 placeholder="YYYY"
-                class="w-full px-1 py-1.5 text-xs border border-orange-300 rounded focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-center bg-orange-50"
+                :class="includeAnnualLuck 
+                  ? 'w-full px-1 py-1.5 text-xs border rounded focus:outline-none text-center'
+                  : 'w-full px-1 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 text-center bg-gray-50 opacity-60'"
+                :style="includeAnnualLuck ? 'background: #F5F1E8; border-color: #C9B037; color: #8B7355;' : ''"
                 @change="handleInputChange"
               />
             </div>
             
-            <!-- Column 7: Monthly (Analysis Month) -->
-            <div v-if="showAnalysisPeriod && chartData?.analysis_info?.has_monthly" class="w-28 flex-shrink-0">
-              <label class="block text-[10px] font-semibold text-green-700 mb-1 text-center">月運 Monthly</label>
+            <!-- Column 7: Monthly (Analysis Month) - Only show if Annual is enabled -->
+            <div v-if="showAnalysisPeriod && analysisYear && includeAnnualLuck" class="w-28 flex-shrink-0">
+              <div class="flex items-center justify-center gap-1 mb-1">
+                <input 
+                  type="checkbox" 
+                  v-model="includeMonthlyLuck" 
+                  class="w-2.5 h-2.5 rounded cursor-pointer"
+                  style="accent-color: #C9B037;"
+                  @change="handleInputChange"
+                  title="Include Monthly Luck in calculations"
+                />
+                <label class="text-[10px] font-semibold text-center cursor-pointer" 
+                       :style="includeMonthlyLuck ? 'color: #8B7355;' : 'color: #9CA3AF;'"
+                       @click="includeMonthlyLuck = !includeMonthlyLuck; handleInputChange()"
+                       title="Click to toggle Monthly Luck inclusion">
+                  月運 Monthly
+                </label>
+              </div>
               <input
                 v-model.number="analysisMonth"
                 type="number"
                 min="1"
                 max="12"
                 placeholder="MM"
-                class="w-full px-1 py-1.5 text-xs border border-green-300 rounded focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 text-center bg-green-50"
+                :class="includeMonthlyLuck 
+                  ? 'w-full px-1 py-1.5 text-xs border rounded focus:outline-none text-center'
+                  : 'w-full px-1 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 text-center bg-gray-50 opacity-60'"
+                :style="includeMonthlyLuck ? 'background: #F5F1E8; border-color: #C9B037; color: #8B7355;' : ''"
                 @change="handleInputChange"
               />
             </div>
             
-            <!-- Column 8: Daily (Analysis Day) -->
-            <div v-if="showAnalysisPeriod && chartData?.analysis_info?.has_daily" class="w-28 flex-shrink-0">
-              <label class="block text-[10px] font-semibold text-indigo-700 mb-1 text-center">日運 Daily</label>
+            <!-- Column 8: Daily (Analysis Day) - Only show if Monthly is enabled -->
+            <div v-if="showAnalysisPeriod && analysisMonth && includeMonthlyLuck" class="w-28 flex-shrink-0">
+              <div class="flex items-center justify-center gap-1 mb-1">
+                <input 
+                  type="checkbox" 
+                  v-model="includeDailyLuck" 
+                  class="w-2.5 h-2.5 rounded cursor-pointer"
+                  style="accent-color: #C9B037;"
+                  @change="handleInputChange"
+                  title="Include Daily Luck in calculations"
+                />
+                <label class="text-[10px] font-semibold text-center cursor-pointer" 
+                       :style="includeDailyLuck ? 'color: #8B7355;' : 'color: #9CA3AF;'"
+                       @click="includeDailyLuck = !includeDailyLuck; handleInputChange()"
+                       title="Click to toggle Daily Luck inclusion">
+                  日運 Daily
+                </label>
+              </div>
               <input
                 v-model.number="analysisDay"
                 type="number"
                 min="1"
                 max="31"
                 placeholder="DD"
-                class="w-full px-1 py-1.5 text-xs border border-indigo-300 rounded focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-center bg-indigo-50"
+                :class="includeDailyLuck 
+                  ? 'w-full px-1 py-1.5 text-xs border rounded focus:outline-none text-center'
+                  : 'w-full px-1 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 text-center bg-gray-50 opacity-60'"
+                :style="includeDailyLuck ? 'background: #F5F1E8; border-color: #C9B037; color: #8B7355;' : ''"
                 @change="handleInputChange"
               />
             </div>
             
-            <!-- Column 9: Hourly (Analysis Time) -->
-            <div v-if="showAnalysisPeriod && chartData?.analysis_info?.has_hourly" class="w-28 flex-shrink-0">
-              <label class="block text-[10px] font-semibold text-pink-700 mb-1 text-center">時運 Hourly</label>
+            <!-- Column 9: Hourly (Analysis Time) - Only show if Daily is enabled -->
+            <div v-if="showAnalysisPeriod && analysisDay && includeDailyLuck" class="w-28 flex-shrink-0">
+              <div class="flex items-center justify-center gap-1 mb-1">
+                <input 
+                  type="checkbox" 
+                  v-model="includeHourlyLuck" 
+                  class="w-2.5 h-2.5 rounded cursor-pointer"
+                  style="accent-color: #C9B037;"
+                  @change="handleInputChange"
+                  title="Include Hourly Luck in calculations"
+                />
+                <label class="text-[10px] font-semibold text-center cursor-pointer" 
+                       :style="includeHourlyLuck ? 'color: #8B7355;' : 'color: #9CA3AF;'"
+                       @click="includeHourlyLuck = !includeHourlyLuck; handleInputChange()"
+                       title="Click to toggle Hourly Luck inclusion">
+                  時運 Hourly
+                </label>
+              </div>
               <input
                 v-model="analysisTime"
                 type="time"
                 placeholder="HH:MM"
-                class="w-full px-1 py-1.5 text-xs border border-pink-300 rounded focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 text-center bg-pink-50"
+                :class="includeHourlyLuck 
+                  ? 'w-full px-1 py-1.5 text-xs border rounded focus:outline-none text-center'
+                  : 'w-full px-1 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 text-center bg-gray-50 opacity-60'"
+                :style="includeHourlyLuck ? 'background: #F5F1E8; border-color: #C9B037; color: #8B7355;' : ''"
                 @change="handleInputChange"
               />
             </div>
+            
+
             
           </div>
 
@@ -238,8 +326,18 @@
             <div class="relative overflow-x-auto" :class="totalPillarCount > 4 ? 'max-w-full' : 'max-w-lg'">
               
               <!-- Heavenly Stems Row -->
-              <div class="flex gap-1">
-                <div v-for="(pillar, index) in pillarsOrdered" :key="`stem-${index}`" class="relative w-28 flex-shrink-0">
+              <div class="flex gap-1 items-center">
+                <!-- Natal Pillars (0-3) -->
+                <template v-for="(pillar, index) in pillarsOrdered" :key="`stem-${index}`">
+                  <!-- Left Partition: Before 10-year luck pillar (position 4) -->
+                  <div v-if="index === 4 && pillarsOrdered.length > 4" 
+                       class="relative flex-shrink-0 mx-3 self-stretch"
+                       style="width: 2px;">
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+                  </div>
+                  
+                  <!-- Pillar Content -->
+                <div class="relative w-28 flex-shrink-0">
                   <div 
                     :id="`stem-${index}`"
                     class="aspect-square p-3 rounded transition-all duration-300 cursor-pointer relative flex flex-col items-center justify-center"
@@ -248,10 +346,10 @@
                       highlightedNodes.includes(`stem-${index}`) ? 'ring-4 ring-blue-500 ring-offset-2 shadow-xl scale-105 z-50' : '',
                       index === 1 ? 'border-2 border-blue-500' : '',
                       pillar.is10YearLuck ? 'border-2 border-purple-500' : '',
-                      pillar.isAnnualLuck ? 'border-2 border-orange-500' : '',
-                      pillar.isMonthlyLuck ? 'border-2 border-green-500' : '',
-                      pillar.isDailyLuck ? 'border-2 border-indigo-500' : '',
-                      pillar.isHourlyLuck ? 'border-2 border-pink-500' : '',
+                      pillar.isAnnualLuck && !includeAnnualLuck ? 'opacity-40 grayscale' : '',
+                      pillar.isMonthlyLuck && !includeMonthlyLuck ? 'opacity-40 grayscale' : '',
+                      pillar.isDailyLuck && !includeDailyLuck ? 'opacity-40 grayscale' : '',
+                      pillar.isHourlyLuck && !includeHourlyLuck ? 'opacity-40 grayscale' : '',
                       pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
                     ]"
                     :style="pillar.isUnknown ? {} : getNodeBgColor(pillar.stem.element, pillar.stem.color)"
@@ -294,12 +392,24 @@
                     </div>
                   </div>
                 </div>
+                
+                  <!-- Right Partition: After 10-year luck pillar (position 4 only) -->
+                  <div v-if="index === 4 && pillarsOrdered.length > 4" 
+                       class="relative flex-shrink-0 mx-3 self-stretch"
+                       style="width: 2px;">
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+                  </div>
+                </template>
               </div>
               
               <!-- Vertical WuXing Flow Indicators - Always present to maintain consistent spacing -->
-              <div class="flex gap-1 -mt-1.5 -mb-1.5 relative z-40">
-                <div v-for="(pillar, index) in pillarsOrdered" :key="`flow-${index}`" 
-                     class="flex justify-center items-center h-5 w-28 flex-shrink-0">
+              <div class="flex gap-1 -mt-1.5 -mb-1.5 relative z-40 items-center">
+                <template v-for="(pillar, index) in pillarsOrdered" :key="`flow-${index}`">
+                  <!-- Left Partition spacer: Before 10-year luck pillar -->
+                  <div v-if="index === 4 && pillarsOrdered.length > 4" 
+                       class="flex-shrink-0 mx-3" style="width: 2px;"></div>
+                  
+                <div class="flex justify-center items-center h-5 w-28 flex-shrink-0">
                   <div v-if="viewMode !== 'base' && !pillar.isUnknown && getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element)"
                        class="text-lg font-bold"
                        :class="getVerticalWuXingClass(pillar.stem.element, pillar.branch.element)"
@@ -307,11 +417,25 @@
                     {{ getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element) }}
                   </div>
                 </div>
+                
+                  <!-- Right Partition spacer: After 10-year luck pillar -->
+                  <div v-if="index === 4 && pillarsOrdered.length > 4" 
+                       class="flex-shrink-0 mx-3" style="width: 2px;"></div>
+                </template>
               </div>
               
               <!-- Earthly Branches Row -->
-              <div class="flex gap-1 overflow-visible">
-                <div v-for="(pillar, index) in pillarsOrdered" :key="`branch-${index}`" class="relative w-28 flex-shrink-0">
+              <div class="flex gap-1 overflow-visible items-stretch">
+                <template v-for="(pillar, index) in pillarsOrdered" :key="`branch-${index}`">
+                  <!-- Left Partition: Before 10-year luck pillar -->
+                  <div v-if="index === 4 && pillarsOrdered.length > 4" 
+                       class="relative flex-shrink-0 mx-3 self-stretch"
+                       style="width: 2px;">
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+                  </div>
+                  
+                  <!-- Pillar Content -->
+                <div class="relative w-28 flex-shrink-0">
                   <div 
                     :id="`branch-${index}`"
                     class="pb-0 pt-2 px-3 rounded transition-all duration-300 cursor-pointer relative flex flex-col items-center justify-start"
@@ -320,10 +444,10 @@
                       highlightedNodes.includes(`branch-${index}`) ? 'ring-4 ring-blue-500 ring-offset-2 shadow-xl scale-105 z-50' : '',
                       index === 1 ? 'border-2 border-blue-500' : '',
                       pillar.is10YearLuck ? 'border-2 border-purple-500' : '',
-                      pillar.isAnnualLuck ? 'border-2 border-orange-500' : '',
-                      pillar.isMonthlyLuck ? 'border-2 border-green-500' : '',
-                      pillar.isDailyLuck ? 'border-2 border-indigo-500' : '',
-                      pillar.isHourlyLuck ? 'border-2 border-pink-500' : '',
+                      pillar.isAnnualLuck && !includeAnnualLuck ? 'opacity-40 grayscale' : '',
+                      pillar.isMonthlyLuck && !includeMonthlyLuck ? 'opacity-40 grayscale' : '',
+                      pillar.isDailyLuck && !includeDailyLuck ? 'opacity-40 grayscale' : '',
+                      pillar.isHourlyLuck && !includeHourlyLuck ? 'opacity-40 grayscale' : '',
                       pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
                     ]"
                     :style="pillar.isUnknown ? { aspectRatio: '1/1.2' } : {
@@ -381,6 +505,14 @@
                     </div>
                   </div>
                 </div>
+                
+                  <!-- Right Partition: After 10-year luck pillar -->
+                  <div v-if="index === 4 && pillarsOrdered.length > 4" 
+                       class="relative flex-shrink-0 mx-3 self-stretch"
+                       style="width: 2px;">
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+                  </div>
+                </template>
               </div>
               
               <!-- View Mode Toggle - Base, Post Interaction -->
@@ -428,8 +560,13 @@
               </div>
               
               <!-- Interaction Labels Below Chart -->
-              <div v-if="showInteractions && pillarsOrdered && interactions" class="flex gap-1 mt-2">
-                <div v-for="(pillar, index) in pillarsOrdered" :key="`interactions-${index}`" class="text-xs w-28 flex-shrink-0">
+              <div v-if="showInteractions && pillarsOrdered && interactions" class="flex gap-1 mt-2 items-start">
+                <template v-for="(pillar, index) in pillarsOrdered" :key="`interactions-${index}`">
+                  <!-- Left Partition spacer: Before 10-year luck pillar -->
+                  <div v-if="index === 4 && pillarsOrdered.length > 4" 
+                       class="flex-shrink-0 mx-3" style="width: 2px; min-height: 20px;"></div>
+                  
+                <div class="text-xs w-28 flex-shrink-0">
                   <!-- Pillar Interactions -->
                   <div v-if="getPillarInteractionData(index).length > 0" class="space-y-1">
                     <div 
@@ -465,6 +602,11 @@
                   <!-- Empty placeholder if no interactions -->
                   <div v-else class="min-h-[20px]"></div>
                 </div>
+                
+                  <!-- Right Partition spacer: After 10-year luck pillar -->
+                  <div v-if="index === 4 && pillarsOrdered.length > 4" 
+                       class="flex-shrink-0 mx-3" style="width: 2px; min-height: 20px;"></div>
+                </template>
               </div>
             </div>
             
@@ -486,57 +628,39 @@
           <div v-if="chartData?.daymaster_analysis" class="mt-2 p-2 bg-white rounded-lg shadow-sm border border-gray-200 max-w-2xl">
             <div class="flex items-center justify-between mb-1.5">
               <h3 class="text-xs font-semibold text-gray-800">五行 Wu Xing Elements</h3>
-              <div class="flex items-center gap-1">
-                <span class="text-[9px] text-gray-500">View:</span>
-                <div class="flex bg-gray-100 rounded p-0.5">
-                  <button @click="elementView = 'before'" :class="['px-1.5 py-0.5 text-[9px] rounded transition-all', elementView === 'before' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900']">Before</button>
-                  <button @click="elementView = 'combined'" :class="['px-1.5 py-0.5 text-[9px] rounded transition-all', elementView === 'combined' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900']">Combined</button>
-                  <button @click="elementView = 'after'" :class="['px-1.5 py-0.5 text-[9px] rounded transition-all', elementView === 'after' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900']">After</button>
-                </div>
+              <div class="text-[9px] text-gray-500">
+                Linked to: <span class="font-medium">{{ viewMode === 'base' ? 'Base' : 'Post Interaction' }}</span>
               </div>
             </div>
-            <div class="text-[9px] text-gray-500 mb-1">Total: {{ Math.round(elementView === 'before' ? naiveTotal : elementView === 'after' ? finalTotal : maxElementScore) }} pts</div>
+            <div class="text-[9px] text-gray-500 mb-1">Total: {{ Math.round(viewMode === 'base' ? naiveTotal : finalTotal) }} pts</div>
             <div class="space-y-1">
               <div v-for="element in fiveElementsWithRelations" :key="element.name">
                 <div class="flex justify-between items-center text-[10px] mb-0.5">
                   <div class="flex items-center gap-1">
                     <span :class="getElementColor(element.name)" class="font-medium">{{ element.name }}</span>
                     <span v-if="element.relationship" class="text-[8px] px-0.5 py-0 bg-gray-100 rounded text-gray-600">{{ element.relationship }}</span>
-                    <template v-if="elementView === 'combined'">
-                      <span v-if="element.change > 50" class="text-[8px] px-0.5 py-0 bg-green-100 text-green-700 rounded">⇈</span>
-                      <span v-else-if="element.change > 0" class="text-[8px] px-0.5 py-0 bg-green-50 text-green-600 rounded opacity-80">↑</span>
-                      <span v-else-if="element.change < -50" class="text-[8px] px-0.5 py-0 bg-red-100 text-red-700 rounded">⇊</span>
-                      <span v-else-if="element.change < 0" class="text-[8px] px-0.5 py-0 bg-red-50 text-red-600 rounded opacity-80">↓</span>
-                    </template>
+                    <span v-if="viewMode === 'post' && element.change > 0" class="text-[8px] px-0.5 py-0 bg-green-50 text-green-600 rounded opacity-80">↑</span>
+                    <span v-else-if="viewMode === 'post' && element.change < 0" class="text-[8px] px-0.5 py-0 bg-red-50 text-red-600 rounded opacity-80">↓</span>
                   </div>
                   <span class="text-gray-600 text-[9px]">
-                    <template v-if="elementView === 'before'">{{ Math.round(element.naive) }}</template>
-                    <template v-else-if="elementView === 'combined'">{{ Math.round(element.naive) }} → {{ Math.round(element.final) }}<span :class="element.change > 0 ? 'text-green-600 font-medium' : element.change < 0 ? 'text-red-600 font-medium' : 'text-gray-400'">({{ element.change > 0 ? '+' : '' }}{{ Math.round(element.change) }})</span></template>
-                    <template v-else>{{ Math.round(element.final) }}</template>
+                    <template v-if="viewMode === 'base'">{{ Math.round(element.naive) }}</template>
+                    <template v-else>{{ Math.round(element.naive) }} → {{ Math.round(element.final) }}<span :class="element.change > 0 ? 'text-green-600 font-medium' : element.change < 0 ? 'text-red-600 font-medium' : 'text-gray-400'">({{ element.change > 0 ? '+' : '' }}{{ Math.round(element.change) }})</span></template>
                   </span>
                 </div>
                 <div class="relative h-4 bg-gray-100 rounded overflow-hidden">
-                  <div class="absolute inset-0 flex"><div class="w-1/4 border-r border-gray-200"></div><div class="w-1/4 border-r border-gray-200"></div><div class="w-1/4 border-r border-gray-200"></div><div class="w-1/4"></div></div>
-                  <template v-if="elementView === 'before'">
+                  <div class="absolute inset-0 flex"><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5"></div></div>
+                  <template v-if="viewMode === 'base'">
                     <div class="absolute top-0 left-0 h-full rounded transition-all duration-500" :class="getElementBgColor(element.name)" :style="`width: ${Math.min((element.naive / maxElementScore) * 100, 100)}%`"></div>
                     <div class="absolute top-0 h-full flex items-center transition-all duration-500" :style="`left: ${Math.min((element.naive / maxElementScore) * 100, 100)}%`"><span class="ml-1 text-[8px] font-medium text-gray-700">{{ Math.round((element.naive / maxElementScore) * 100) }}%</span></div>
                   </template>
-                  <template v-else-if="elementView === 'after'">
-                    <div class="absolute top-0 left-0 h-full rounded transition-all duration-500" :class="getElementBgColor(element.name)" :style="`width: ${Math.min((element.final / maxElementScore) * 100, 100)}%`"></div>
-                    <div class="absolute top-0 h-full flex items-center transition-all duration-500" :style="`left: ${Math.min((element.final / maxElementScore) * 100, 100)}%`"><span class="ml-1 text-[8px] font-medium text-gray-700">{{ Math.round((element.final / maxElementScore) * 100) }}%</span></div>
-                  </template>
                   <template v-else>
-                    <template v-if="element.change > 50">
-                      <div class="absolute top-0 left-0 h-full rounded-l transition-all duration-500" :class="getElementBgColor(element.name)" :style="`width: ${Math.min((element.naive / maxElementScore) * 100, 100)}%`"></div>
-                      <div class="absolute top-0 h-full rounded-r transition-all duration-500" :class="getElementBgColor(element.name)" :style="`left: ${Math.min((element.naive / maxElementScore) * 100, 100)}%; width: ${Math.min(((element.final - element.naive) / maxElementScore) * 100, 100 - (element.naive / maxElementScore) * 100)}%; background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.3) 2px, rgba(255,255,255,0.3) 4px);`"></div>
-                    </template>
-                    <template v-else-if="element.change > 0">
+                    <template v-if="element.change > 0">
                       <div class="absolute top-0 left-0 h-full rounded-l transition-all duration-500" :class="getElementBgColor(element.name)" :style="`width: ${Math.min((element.naive / maxElementScore) * 100, 100)}%`"></div>
                       <div class="absolute top-0 h-full rounded-r transition-all duration-500" :class="getElementBgColor(element.name)" :style="`left: ${Math.min((element.naive / maxElementScore) * 100, 100)}%; width: ${Math.min(((element.final - element.naive) / maxElementScore) * 100, 100 - (element.naive / maxElementScore) * 100)}%; background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.2) 2px, rgba(255,255,255,0.2) 4px);`"></div>
                     </template>
                     <template v-else>
                       <div class="absolute top-0 left-0 h-full rounded transition-all duration-500" :class="[element.change < 0 ? 'border border-dotted' : 'border', getElementBorderColor(element.name)]" :style="`width: ${Math.min((element.naive / maxElementScore) * 100, 100)}%; background-color: transparent;`"></div>
-                      <div class="absolute top-0 left-0 h-full rounded transition-all duration-700" :class="[getElementBgColor(element.name), element.change < -50 ? 'opacity-60' : element.change < 0 ? 'opacity-80' : '']" :style="`width: ${Math.min((element.final / maxElementScore) * 100, 100)}%`"></div>
+                      <div class="absolute top-0 left-0 h-full rounded transition-all duration-700" :class="[getElementBgColor(element.name), element.change < 0 ? 'opacity-80' : '']" :style="`width: ${Math.min((element.final / maxElementScore) * 100, 100)}%`"></div>
                     </template>
                     <div class="absolute top-0 h-full flex items-center transition-all duration-500" :style="`left: ${Math.min((element.final / maxElementScore) * 100, 100)}%`"><span class="ml-1 text-[8px] font-medium text-gray-700">{{ Math.round((element.final / maxElementScore) * 100) }}%</span></div>
                   </template>
@@ -586,10 +710,14 @@
             <div class="mt-1.5 pt-1.5 border-t border-indigo-200 text-[9px] text-indigo-600">
               <div class="flex flex-wrap gap-1">
                 <span v-if="chartData.analysis_info.has_luck_pillar" class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">10-Year Luck</span>
-                <span v-if="chartData.analysis_info.has_annual" class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">Annual</span>
-                <span v-if="chartData.analysis_info.has_monthly" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full">Monthly</span>
-                <span v-if="chartData.analysis_info.has_daily" class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full">Daily</span>
-                <span v-if="chartData.analysis_info.has_hourly" class="px-2 py-0.5 bg-pink-100 text-pink-700 rounded-full">Hourly</span>
+                <span v-if="chartData.analysis_info.has_annual" class="px-2 py-0.5 rounded-full" style="background: #FEF3C7; color: #92400E; border: 1px solid #D97706;">Annual ✓</span>
+                <span v-if="chartData.analysis_info.annual_disabled" class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full opacity-60">Annual (display only)</span>
+                <span v-if="chartData.analysis_info.has_monthly" class="px-2 py-0.5 rounded-full" style="background: #FEF3C7; color: #92400E; border: 1px solid #D97706;">Monthly</span>
+                <span v-if="chartData.analysis_info.has_daily" class="px-2 py-0.5 rounded-full" style="background: #FEF3C7; color: #92400E; border: 1px solid #D97706;">Daily</span>
+                <span v-if="chartData.analysis_info.has_hourly" class="px-2 py-0.5 rounded-full" style="background: #FEF3C7; color: #92400E; border: 1px solid #D97706;">Hourly</span>
+              </div>
+              <div v-if="chartData.analysis_info.annual_disabled" class="mt-1 text-[8px] text-gray-600 italic">
+                💡 Year {{ chartData.analysis_info.year }} determines 10-year luck only. Annual pillar shown but excluded from element balance and interactions.
               </div>
             </div>
           </div>
@@ -605,8 +733,10 @@
               <span class="font-medium">Age Range:</span> 
               {{ Math.floor(currentLuckPillar.timing.start_age) }} - {{ Math.floor(currentLuckPillar.timing.end_age) }} years old
             </div>
-            <div class="text-[9px] text-purple-700 mt-1">
-              This luck pillar is treated as <strong>adjacent</strong> to your natal chart for interaction calculations.
+            <div class="text-[9px] text-purple-700 mt-1 bg-purple-100 border border-purple-300 p-2 rounded">
+              <strong>⏰ Temporal Overlay:</strong> The 10-year luck pillar is a <strong>time period</strong> that overlays your entire natal chart.
+              It interacts with <strong>all four natal pillars</strong> (Year, Month, Day, Hour) <strong>equally and adjacently</strong>,
+              regardless of its visual position in the UI. This reflects authentic BaZi metaphysics where luck periods are temporal influences, not spatial positions.
             </div>
             
             <!-- Luck Pillar Interactions -->
@@ -777,29 +907,80 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+
+// LocalStorage keys
+const STORAGE_KEY = 'bazingse_form_data'
+
+// Helper to load from localStorage
+function loadFromStorage() {
+  if (typeof window === 'undefined') return null
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    return saved ? JSON.parse(saved) : null
+  } catch (e) {
+    console.error('Error loading from localStorage:', e)
+    return null
+  }
+}
+
+// Helper to save to localStorage
+function saveToStorage() {
+  if (typeof window === 'undefined') return
+  try {
+    const data = {
+      birthDate: birthDate.value,
+      birthTime: birthTime.value,
+      gender: gender.value,
+      unknownHour: unknownHour.value,
+      yearInput: yearInput.value,
+      monthInput: monthInput.value,
+      dayInput: dayInput.value,
+      analysisYear: analysisYear.value,
+      analysisMonth: analysisMonth.value,
+      analysisDay: analysisDay.value,
+      analysisTime: analysisTime.value,
+      showAnalysisPeriod: showAnalysisPeriod.value,
+      includeAnnualLuck: includeAnnualLuck.value,
+      includeMonthlyLuck: includeMonthlyLuck.value,
+      includeDailyLuck: includeDailyLuck.value,
+      includeHourlyLuck: includeHourlyLuck.value,
+      viewMode: viewMode.value
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch (e) {
+    console.error('Error saving to localStorage:', e)
+  }
+}
+
+// Load saved values or use defaults
+const savedData = loadFromStorage()
 
 // Form data
-const birthDate = ref('1992-07-06')
-const birthTime = ref('09:30')
-const gender = ref('female')
+const birthDate = ref(savedData?.birthDate || '1992-07-06')
+const birthTime = ref(savedData?.birthTime || '09:30')
+const gender = ref(savedData?.gender || 'female')
 const isLoading = ref(false)
 const chartData = ref(null)
 const currentLuckPillar = ref(null)  // Current 10-year luck pillar
 const annualLuckPillar = ref(null)  // Current annual luck pillar
-const unknownHour = ref(false)
+const unknownHour = ref(savedData?.unknownHour || false)
 
 // Individual pillar inputs
-const yearInput = ref(1992)
-const monthInput = ref(7)
-const dayInput = ref(6)
+const yearInput = ref(savedData?.yearInput || 1992)
+const monthInput = ref(savedData?.monthInput || 7)
+const dayInput = ref(savedData?.dayInput || 6)
 
 // Analysis period controls (for time travel functionality)
-const analysisYear = ref(null)
-const analysisMonth = ref(null)
-const analysisDay = ref(null)
-const analysisTime = ref('')
-const showAnalysisPeriod = ref(false)  // Toggle for analysis mode
+const analysisYear = ref(savedData?.analysisYear || null)
+const analysisMonth = ref(savedData?.analysisMonth || null)
+const analysisDay = ref(savedData?.analysisDay || null)
+const analysisTime = ref(savedData?.analysisTime || '')
+const showAnalysisPeriod = ref(savedData?.showAnalysisPeriod || false)
+const includeAnnualLuck = ref(savedData?.includeAnnualLuck !== undefined ? savedData.includeAnnualLuck : true)
+const includeMonthlyLuck = ref(savedData?.includeMonthlyLuck !== undefined ? savedData.includeMonthlyLuck : true)
+const includeDailyLuck = ref(savedData?.includeDailyLuck !== undefined ? savedData.includeDailyLuck : true)
+const includeHourlyLuck = ref(savedData?.includeHourlyLuck !== undefined ? savedData.includeHourlyLuck : true)
 
 // Calculate grid columns for luck pillars (backward compatibility)
 const luckPillarCount = computed(() => {
@@ -854,6 +1035,9 @@ let debounceTimer = null
 function handleInputChange() {
   updateDateFromPillars()
   
+  // Save to localStorage
+  saveToStorage()
+  
   // Clear existing timer
   if (debounceTimer) {
     clearTimeout(debounceTimer)
@@ -882,6 +1066,31 @@ function handleAnalysisModeToggle() {
   }
   handleInputChange()
 }
+
+// Watch for cascading resets when toggles are disabled
+watch(includeAnnualLuck, (newValue) => {
+  if (!newValue) {
+    // Clear monthly and all dependent values
+    analysisMonth.value = null
+    analysisDay.value = null
+    analysisTime.value = ''
+  }
+})
+
+watch(includeMonthlyLuck, (newValue) => {
+  if (!newValue) {
+    // Clear daily and hourly
+    analysisDay.value = null
+    analysisTime.value = ''
+  }
+})
+
+watch(includeDailyLuck, (newValue) => {
+  if (!newValue) {
+    // Clear hourly
+    analysisTime.value = ''
+  }
+})
 
 // Clear analysis period
 function clearAnalysisPeriod() {
@@ -912,11 +1121,9 @@ const showConnections = ref(true)
 const tooltipContent = ref(null)
 const tooltipPosition = ref({ x: 0, y: 0 })
 
-// Element view state for transformation animation
-const elementView = ref('combined') // 'before', 'combined', or 'after'
-
 // View mode state: 'base' or 'post' - default to 'post' to show energy flow
-const viewMode = ref('post')
+// This controls both the interaction view and Wu Xing element graph
+const viewMode = ref(savedData?.viewMode || 'post')
 const showTransformed = computed(() => viewMode.value === 'post')
 
 // Interactions display state
@@ -932,6 +1139,8 @@ watch(viewMode, (newMode) => {
   if (newMode === 'base') {
     showInteractions.value = false
   }
+  // Save view mode preference
+  saveToStorage()
 })
 
 // Stem and Branch mappings
@@ -1102,7 +1311,7 @@ const nodes = computed(() => {
   
   // Extract node data (hs_y, eb_y, etc.) from top level
   const nodeKeys = ['hs_y', 'eb_y', 'hs_m', 'eb_m', 'hs_d', 'eb_d', 'hs_h', 'eb_h', 
-                    'hs_luck_10_year', 'eb_luck_10_year', 'hs_yl', 'eb_yl',
+                    'hs_10yl', 'eb_10yl', 'hs_yl', 'eb_yl',
                     'hs_month', 'eb_month', 'hs_day', 'eb_day']
   
   const nodesData = {}
@@ -1266,13 +1475,13 @@ const pillars = computed(() => {
     // Hidden stems from eb.qi - use post.qi for post view, base.qi for base view
     const hiddenQi = usePost ? (ebNode?.post?.qi || {}) : (ebNode?.base?.qi || {})
     
-    // Ten gods for hidden stems should also be recalculated based on the qi being used
+    // Map hidden stems to Ten Gods using frontend mappings
     const hiddenStems = {}
     if (hiddenQi && data.mappings?.ten_gods) {
       const dayMasterStem = data.hs_d?.base?.id || 'Yi'
       for (const stemName of Object.keys(hiddenQi)) {
         const tenGodData = data.mappings?.ten_gods?.[dayMasterStem]?.[stemName]
-        hiddenStems[stemName] = tenGodData?.id || tenGodData?.abbreviation || ''
+        hiddenStems[stemName] = tenGodData?.abbreviation || tenGodData?.id || ''
       }
     }
     
@@ -1373,20 +1582,22 @@ const luckPillarsOrdered = computed(() => {
     const ebMapping = mappings.earthly_branches?.[ebName] || {}
     
     // Get hidden stems from backend node data
-    const ebLuckNode = chartData.value?.eb_luck_10_year
-    const hsLuckNode = chartData.value?.hs_luck_10_year
+    const ebLuckNode = chartData.value?.eb_10yl
+    const hsLuckNode = chartData.value?.hs_10yl
     
     // Calculate Ten God for 10Y luck HS
     const dayMasterStem = chartData.value?.hs_d?.base?.id || 'Yi'
     const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[hsName]
     const tenGodLabel = tenGodData?.abbreviation || tenGodData?.id || ''
     
-    // Calculate Ten Gods for hidden stems
+    // Map hidden stems to Ten Gods using frontend mappings (use post.qi in post view, base.qi in base view)
+    const usePost = viewMode.value === 'post' || viewMode.value === 'transformed'
+    const luckQi = usePost ? (ebLuckNode?.post?.qi || ebLuckNode?.base?.qi || {}) : (ebLuckNode?.base?.qi || {})
     const hiddenStems = {}
-    if (ebLuckNode?.base?.qi && mappings.ten_gods) {
-      for (const stemName of Object.keys(ebLuckNode.base.qi)) {
-        const stemTenGod = mappings.ten_gods?.[dayMasterStem]?.[stemName]
-        hiddenStems[stemName] = stemTenGod?.abbreviation || stemTenGod?.id || ''
+    if (luckQi && mappings.ten_gods) {
+      for (const stemName of Object.keys(luckQi)) {
+        const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[stemName]
+        hiddenStems[stemName] = tenGodData?.abbreviation || tenGodData?.id || ''
       }
     }
     
@@ -1405,8 +1616,8 @@ const luckPillarsOrdered = computed(() => {
         color: ebMapping.hex_color || '#808080'
       },
       branchName: ebName,
-      stemKey: 'hs_luck_10_year',
-      branchKey: 'eb_luck_10_year',
+      stemKey: 'hs_10yl',
+      branchKey: 'eb_10yl',
       hiddenStems: hiddenStems,
       hiddenQi: ebLuckNode?.base?.qi || null,  // Get hidden stems qi from backend
       tenGod: tenGodLabel,
@@ -1443,12 +1654,14 @@ const luckPillarsOrdered = computed(() => {
     const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[hsName]
     const tenGodLabel = tenGodData?.abbreviation || tenGodData?.id || ''
     
-    // Calculate Ten Gods for hidden stems
+    // Map hidden stems to Ten Gods using frontend mappings (use post.qi in post view, base.qi in base view)
+    const usePost = viewMode.value === 'post' || viewMode.value === 'transformed'
+    const annualQi = usePost ? (ebAnnualNode?.post?.qi || ebAnnualNode?.base?.qi || {}) : (ebAnnualNode?.base?.qi || {})
     const hiddenStems = {}
-    if (ebAnnualNode?.base?.qi && mappings.ten_gods) {
-      for (const stemName of Object.keys(ebAnnualNode.base.qi)) {
-        const stemTenGod = mappings.ten_gods?.[dayMasterStem]?.[stemName]
-        hiddenStems[stemName] = stemTenGod?.abbreviation || stemTenGod?.id || ''
+    if (annualQi && mappings.ten_gods) {
+      for (const stemName of Object.keys(annualQi)) {
+        const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[stemName]
+        hiddenStems[stemName] = tenGodData?.abbreviation || tenGodData?.id || ''
       }
     }
     
@@ -1502,11 +1715,14 @@ const luckPillarsOrdered = computed(() => {
       const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[hsName]
       const tenGodLabel = tenGodData?.abbreviation || tenGodData?.id || ''
       
+      // Map hidden stems to Ten Gods using frontend mappings (use post.qi in post view, base.qi in base view)
+      const usePost = viewMode.value === 'post' || viewMode.value === 'transformed'
+      const monthlyQi = usePost ? (ebMonthlyNode?.post?.qi || ebMonthlyNode?.base?.qi || {}) : (ebMonthlyNode?.base?.qi || {})
       const hiddenStems = {}
-      if (ebMonthlyNode?.base?.qi && mappings.ten_gods) {
-        for (const stemName of Object.keys(ebMonthlyNode.base.qi)) {
-          const stemTenGod = mappings.ten_gods?.[dayMasterStem]?.[stemName]
-          hiddenStems[stemName] = stemTenGod?.abbreviation || stemTenGod?.id || ''
+      if (monthlyQi && mappings.ten_gods) {
+        for (const stemName of Object.keys(monthlyQi)) {
+          const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[stemName]
+          hiddenStems[stemName] = tenGodData?.abbreviation || tenGodData?.id || ''
         }
       }
       
@@ -1560,11 +1776,14 @@ const luckPillarsOrdered = computed(() => {
       const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[hsName]
       const tenGodLabel = tenGodData?.abbreviation || tenGodData?.id || ''
       
+      // Map hidden stems to Ten Gods using frontend mappings (use post.qi in post view, base.qi in base view)
+      const usePost = viewMode.value === 'post' || viewMode.value === 'transformed'
+      const dailyQi = usePost ? (ebDailyNode?.post?.qi || ebDailyNode?.base?.qi || {}) : (ebDailyNode?.base?.qi || {})
       const hiddenStems = {}
-      if (ebDailyNode?.base?.qi && mappings.ten_gods) {
-        for (const stemName of Object.keys(ebDailyNode.base.qi)) {
-          const stemTenGod = mappings.ten_gods?.[dayMasterStem]?.[stemName]
-          hiddenStems[stemName] = stemTenGod?.abbreviation || stemTenGod?.id || ''
+      if (dailyQi && mappings.ten_gods) {
+        for (const stemName of Object.keys(dailyQi)) {
+          const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[stemName]
+          hiddenStems[stemName] = tenGodData?.abbreviation || tenGodData?.id || ''
         }
       }
       
@@ -1618,11 +1837,14 @@ const luckPillarsOrdered = computed(() => {
       const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[hsName]
       const tenGodLabel = tenGodData?.abbreviation || tenGodData?.id || ''
       
+      // Map hidden stems to Ten Gods using frontend mappings (use post.qi in post view, base.qi in base view)
+      const usePost = viewMode.value === 'post' || viewMode.value === 'transformed'
+      const hourlyQi = usePost ? (ebHourlyNode?.post?.qi || ebHourlyNode?.base?.qi || {}) : (ebHourlyNode?.base?.qi || {})
       const hiddenStems = {}
-      if (ebHourlyNode?.base?.qi && mappings.ten_gods) {
-        for (const stemName of Object.keys(ebHourlyNode.base.qi)) {
-          const stemTenGod = mappings.ten_gods?.[dayMasterStem]?.[stemName]
-          hiddenStems[stemName] = stemTenGod?.abbreviation || stemTenGod?.id || ''
+      if (hourlyQi && mappings.ten_gods) {
+        for (const stemName of Object.keys(hourlyQi)) {
+          const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[stemName]
+          hiddenStems[stemName] = tenGodData?.abbreviation || tenGodData?.id || ''
         }
       }
       
@@ -1837,11 +2059,14 @@ const luckPillarInteractions = computed(() => {
   
   // Iterate through interaction dictionary keys
   for (const [key, interactionData] of Object.entries(interactionsDict)) {
-    // Check if this interaction involves luck pillar nodes (10-year or annual)
+    // Check if this interaction involves luck pillar nodes (10-year, annual, monthly, daily, hourly)
     const nodes = interactionData.nodes || []
     const hasLuckNode = nodes.some(nodeId => 
-      nodeId === 'hs_luck_10_year' || nodeId === 'eb_luck_10_year' ||
-      nodeId === 'hs_yl' || nodeId === 'eb_yl'
+      nodeId === 'hs_10yl' || nodeId === 'eb_10yl' ||
+      nodeId === 'hs_yl' || nodeId === 'eb_yl' ||
+      nodeId === 'hs_ml' || nodeId === 'eb_ml' ||
+      nodeId === 'hs_dl' || nodeId === 'eb_dl' ||
+      nodeId === 'hs_hl' || nodeId === 'eb_hl'
     )
     
     if (hasLuckNode) {
@@ -1909,53 +2134,78 @@ async function generateChart() {
   
   isLoading.value = true
   try {
-    // Build API URL with new analyze-bazi endpoint
-    let apiUrl = `/api/bazi/analyze-bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(timeParam)}&gender=${gender.value}`
+    // Build API URL with analyze_bazi endpoint (underscore, not hyphen)
+    let apiUrl = `/api/bazi/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(timeParam)}&gender=${gender.value}`
     
-    // Add analysis parameters if analysis mode is enabled
-    if (showAnalysisPeriod.value && analysisYear.value) {
-      apiUrl += `&analysis_year=${analysisYear.value}`
-      if (analysisMonth.value) {
+    // Only add analysis parameters if time travel mode is enabled (🔮 toggle is ON)
+    if (showAnalysisPeriod.value) {
+      // Add analysis_year to get luck pillars (default to current year if not specified)
+      const yearToAnalyze = analysisYear.value || new Date().getFullYear()
+      apiUrl += `&analysis_year=${yearToAnalyze}`
+      
+      // Add include_annual_luck parameter (controls whether annual luck affects calculations)
+      apiUrl += `&include_annual_luck=${includeAnnualLuck.value}`
+      
+      // Only send month/day/time if toggles are enabled (respects checkbox state)
+      if (analysisMonth.value && includeMonthlyLuck.value) {
         apiUrl += `&analysis_month=${analysisMonth.value}`
-        if (analysisDay.value) {
-          apiUrl += `&analysis_day=${analysisDay.value}`
-          if (analysisTime.value) {
-            apiUrl += `&analysis_time=${encodeURIComponent(analysisTime.value)}`
-          }
-        }
+      }
+      
+      if (analysisDay.value && includeDailyLuck.value) {
+        apiUrl += `&analysis_day=${analysisDay.value}`
+      }
+      
+      if (analysisTime.value && includeHourlyLuck.value) {
+        apiUrl += `&analysis_time=${encodeURIComponent(analysisTime.value)}`
       }
     }
     
-    console.log('Calling analyze-bazi endpoint:', apiUrl)
+    console.log('Calling analyze_bazi endpoint:', apiUrl)
     
-    // Call the new unified endpoint
+    // Call the backend endpoint via proxy
     const response = await fetch(apiUrl)
     
     if (!response.ok) throw new Error('Chart API request failed')
     
     const data = await response.json()
-    console.log('Chart data from analyze-bazi received:', data)
+    console.log('Chart data from analyze_bazi received:', data)
     chartData.value = data
     
     // Extract 10-year luck pillar info from response (if has_luck_pillar flag is true)
-    if (data.analysis_info?.has_luck_pillar && data.hs_luck_10_year && data.eb_luck_10_year) {
-      const luckHs = data.hs_luck_10_year.base?.id
-      const luckEb = data.eb_luck_10_year.base?.id
+    if (data.analysis_info?.has_luck_pillar && data.hs_10yl && data.eb_10yl) {
+      const luckHs = data.hs_10yl.base?.id
+      const luckEb = data.eb_10yl.base?.id
       
       if (luckHs && luckEb) {
         currentLuckPillar.value = {
           pillar: `${luckHs} ${luckEb}`,
           hs_element: data.mappings?.heavenly_stems?.[luckHs]?.english || 'Unknown',
           eb_animal: data.mappings?.earthly_branches?.[luckEb]?.animal || 'Unknown',
-          ten_god_hs: data.hs_luck_10_year?.base?.ten_god || 'Unknown',
+          ten_god_hs: data.hs_10yl?.base?.ten_god || 'Unknown',
           ten_god_hidden: {},
-          timing: {
-            // Approximate timing based on analysis year
-            start_year: data.analysis_info?.year || new Date().getFullYear(),
-            end_year: (data.analysis_info?.year || new Date().getFullYear()) + 10,
-            start_age: 0,  // Backend doesn't provide this in new format
-            end_age: 10
-          },
+          timing: (() => {
+            const misc = data.hs_10yl?.misc || data.eb_10yl?.misc
+            if (misc && misc.start_date && misc.end_date) {
+              // Extract years from date strings (format: "YYYY-MM-DD")
+              const startYear = misc.start_date.split('-')[0]
+              const endYear = misc.end_date.split('-')[0]
+              return {
+                start_year: parseInt(startYear),
+                end_year: parseInt(endYear),
+                start_age: misc.start_age || 0,
+                end_age: misc.end_age || 10,
+                start_date: misc.start_date,
+                end_date: misc.end_date
+              }
+            }
+            // Fallback if no misc data
+            return {
+              start_year: data.analysis_info?.year || new Date().getFullYear(),
+              end_year: (data.analysis_info?.year || new Date().getFullYear()) + 10,
+              start_age: 0,
+              end_age: 10
+            }
+          })(),
           is_current: true
         }
         console.log('10-year luck pillar extracted:', currentLuckPillar.value)
@@ -1966,8 +2216,8 @@ async function generateChart() {
       currentLuckPillar.value = null
     }
     
-    // Extract annual luck pillar info from response (if has_annual flag is true)
-    if (data.analysis_info?.has_annual && data.hs_yl && data.eb_yl) {
+    // Extract annual luck pillar info from response (if year is set, even if disabled)
+    if (data.analysis_info?.year && data.hs_yl && data.eb_yl) {
       const annualHs = data.hs_yl.base?.id
       const annualEb = data.eb_yl.base?.id
       
@@ -1979,7 +2229,8 @@ async function generateChart() {
           ten_god_hs: data.hs_yl?.base?.ten_god || 'Unknown',
           ten_god_hidden: {},
           year: data.analysis_info?.year,
-          is_current: true
+          is_current: true,
+          disabled: data.hs_yl.disabled || false  // Track if it's disabled
         }
         console.log('Annual luck pillar extracted:', annualLuckPillar.value)
       } else {
@@ -1991,9 +2242,14 @@ async function generateChart() {
     
     console.log('chartData.value set with backend interactions, pillarsOrdered:', pillarsOrdered.value)
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error generating chart:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      apiUrl: `/api/bazi/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(birthTime.value || 'unknown')}&gender=${gender.value}`
+    })
     if (typeof window !== 'undefined') {
-      alert('Failed to generate chart. Please ensure the backend is running.')
+      alert(`Failed to generate chart: ${error.message || 'Unknown error'}. Check console for details.`)
     }
   } finally {
     isLoading.value = false
@@ -2333,7 +2589,7 @@ function formatNodeName(node) {
     'hs_m': 'Month Stem',
     'hs_d': 'Day Stem',
     'hs_h': 'Hour Stem',
-    'hs_luck_10_year': '10-Year Luck Stem',
+    'hs_10yl': '10-Year Luck Stem',
     'hs_yl': 'Annual Luck Stem',
     'hs_ml': 'Monthly Luck Stem',
     'hs_dl': 'Daily Luck Stem',
@@ -2342,7 +2598,7 @@ function formatNodeName(node) {
     'eb_m': 'Month Branch',
     'eb_d': 'Day Branch',
     'eb_h': 'Hour Branch',
-    'eb_luck_10_year': '10-Year Luck Branch',
+    'eb_10yl': '10-Year Luck Branch',
     'eb_yl': 'Annual Luck Branch',
     'eb_ml': 'Monthly Luck Branch',
     'eb_dl': 'Daily Luck Branch',
@@ -2634,14 +2890,17 @@ function getPillarInteractions(pillarIndex) {
 function getPillarInteractionData(pillarIndex) {
   const results = []
   
-  // Map pillar index to node position codes: 0=h, 1=d, 2=m, 3=y, 4=luck_10_year, 5=yl
+  // Map pillar index to node position codes: 0=h, 1=d, 2=m, 3=y, 4=10yl, 5=yl, 6=ml, 7=dl, 8=hl
   const indexToNodePos = {
-    0: 'h',           // Hour
-    1: 'd',           // Day
-    2: 'm',           // Month
-    3: 'y',           // Year
-    4: 'luck_10_year', // 10-Year Luck
-    5: 'yl'           // Annual Luck
+    0: 'h',    // Hour
+    1: 'd',    // Day
+    2: 'm',    // Month
+    3: 'y',    // Year
+    4: '10yl',  // 10-Year Luck
+    5: 'yl',   // Annual Luck
+    6: 'ml',   // Monthly Luck
+    7: 'dl',   // Daily Luck
+    8: 'hl'    // Hourly Luck
   }
   
   const currentNodePos = indexToNodePos[pillarIndex]
@@ -2660,7 +2919,7 @@ function getPillarInteractionData(pillarIndex) {
       // Check if this pillar is involved in the interaction
       const nodes = interaction.nodes || []
       const isPillarInvolved = nodes.some(nodeId => {
-        // Extract position from node ID (e.g., "hs_y" -> "y", "eb_luck_10_year" -> "luck_10_year")
+        // Extract position from node ID (e.g., "hs_y" -> "y", "eb_10yl" -> "10yl")
         const parts = nodeId.split('_')
         const nodePos = parts.length > 2 ? parts.slice(1).join('_') : parts[1]
         return nodePos === currentNodePos
@@ -2675,7 +2934,7 @@ function getPillarInteractionData(pillarIndex) {
         nodes: nodes,
         positions: interaction.positions || [],
         effect: 'neutral',
-        isLuckInteraction: nodes.some(n => n.includes('luck_10_year') || n.includes('_yl')),
+        isLuckInteraction: nodes.some(n => n.includes('_10yl') || n.includes('_yl')),
         display: '',
         subtitle: '',
         raw: interaction
@@ -2903,9 +3162,9 @@ function getVerticalWuXingClass(stemElement, branchElement) {
 
 function getNodeIndex(nodeKey) {
   // Map to display order: Hour, Day, Month, Year, 10Y Luck, Annual, Monthly, Daily, Hourly (left to right)
-  const pillarMap = { 'h': 0, 'd': 1, 'm': 2, 'y': 3, 'luck_10_year': 4, 'yl': 5, 'ml': 6, 'dl': 7, 'hl': 8 }
+  const pillarMap = { 'h': 0, 'd': 1, 'm': 2, 'y': 3, '10yl': 4, 'yl': 5, 'ml': 6, 'dl': 7, 'hl': 8 }
   
-  // Extract pillar type from node ID (e.g., "hs_h" -> "h", "eb_luck_10_year" -> "luck_10_year", "hs_yl" -> "yl", "hs_ml" -> "ml")
+  // Extract pillar type from node ID (e.g., "hs_h" -> "h", "eb_10yl" -> "10yl", "hs_yl" -> "yl", "hs_ml" -> "ml")
   const parts = nodeKey.split('_')
   const pillarType = parts.length > 2 ? parts.slice(1).join('_') : parts[1]
   
@@ -3006,14 +3265,6 @@ function isInteractionHighlighted(interaction) {
   }
   
   return false
-}
-
-// Cycle through element view modes
-function cycleElementView() {
-  const views = ['before', 'combined', 'after']
-  const currentIndex = views.indexOf(elementView.value)
-  const nextIndex = (currentIndex + 1) % views.length
-  elementView.value = views[nextIndex]
 }
 </script>
 
