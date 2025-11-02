@@ -328,7 +328,21 @@
        />
       </div>
       
-
+      <!-- Talisman Section Toggle (符 - always visible) -->
+      <div class="w-28 flex-shrink-0">
+       <div class="flex justify-center mb-1">
+        <label class="cursor-pointer flex items-center gap-1">
+         <input 
+          type="checkbox" 
+          v-model="showTalismans" 
+          class="w-3 h-3 text-teal-600 focus:ring-teal-500"
+          style="accent-color: #14B8A6;"
+          @change="handleInputChange"
+         />
+         <span class="text-xs font-medium text-teal-700">符</span>
+        </label>
+       </div>
+      </div>
       
      </div>
 
@@ -344,16 +358,16 @@
      </div>
 
      <!-- BaZi Chart Display -->
-     <div v-if="pillarsOrdered && !isLoading" class="relative">
-      <!-- Traditional 6-Column Grid (4 natal + 2 luck pillars) -->
+     <div v-if="natalAndLuckPillars && !isLoading" class="relative">
+      <!-- Natal + Luck Pillars (Horizontal Layout) -->
       <div class="relative overflow-x-auto" :class="totalPillarCount > 4 ? 'max-w-full' : 'max-w-lg'">
        
        <!-- Heavenly Stems Row -->
        <div class="flex gap-1 items-center">
-        <!-- Natal Pillars (0-3) -->
-        <template v-for="(pillar, index) in pillarsOrdered" :key="`stem-${index}`">
+        <!-- Natal + Luck Pillars -->
+        <template v-for="(pillar, index) in natalAndLuckPillars" :key="`stem-${index}`">
          <!-- Left Partition: Before 10-year luck pillar (position 4) -->
-         <div v-if="index === 4 && pillarsOrdered.length > 4" 
+         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
             class="relative flex-shrink-0 mx-3 self-stretch"
             style="width: 2px;">
           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
@@ -374,9 +388,10 @@
            pillar.isMonthlyLuck && !includeMonthlyLuck ? 'opacity-40 grayscale' : '',
            pillar.isDailyLuck && !includeDailyLuck ? 'opacity-40 grayscale' : '',
            pillar.isHourlyLuck && !includeHourlyLuck ? 'opacity-40 grayscale' : '',
+           (pillar.isTalismanYear || pillar.isTalismanMonth || pillar.isTalismanDay || pillar.isTalismanHour) ? 'border-2 border-teal-500' : '',
            pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
           ]"
-          :style="pillar.isUnknown ? {} : getNodeBgColor(pillar.stem.element, pillar.stem.color)"
+          :style="pillar.isUnknown ? {} : (pillar.stem ? getNodeBgColor(pillar.stem.element, pillar.stem.color) : {})"
          >
           <!-- Negative Badges (top-left corner, stacked vertically) -->
           <div v-if="pillar.stemNegatives && pillar.stemNegatives.length > 0" 
@@ -417,13 +432,14 @@
           </div>
           
           <!-- Pinyin name at top -->
-          <div v-if="!pillar.isUnknown" class="text-xs text-gray-700 mb-1">{{ pillar.stemName }}</div>
+          <div v-if="!pillar.isUnknown && pillar.stemName" class="text-xs text-gray-700 mb-1">{{ pillar.stemName }}</div>
           <!-- Chinese character (always show original from base) -->
-          <div class="text-2xl font-bold text-black">
+          <div v-if="pillar.stem" class="text-2xl font-bold text-black">
            {{ pillar.stem.chinese }}
           </div>
+          <div v-else class="text-xl text-gray-400">-</div>
           <!-- Element type -->
-          <div v-if="!pillar.isUnknown" class="text-xs text-gray-700">
+          <div v-if="!pillar.isUnknown && pillar.stem" class="text-xs text-gray-700">
            <template v-if="showTransformed && pillar.stem.transformedElement">
             {{ pillar.stem.transformedElement.replace('Yang ', '').replace('Yin ', '') }}
            </template>
@@ -459,17 +475,17 @@
           
           
           <!-- Horizontal WuXing Flow to Next Stem (only in post/transformed view) -->
-          <div v-if="viewMode !== 'base' && !pillar.isUnknown && index < pillarsOrdered.length - 1 && !pillarsOrdered[index + 1].isUnknown && getWuXingRelation(pillar.stem.element, pillarsOrdered[index + 1].stem.element)"
+          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.stem && natalAndLuckPillars[index + 1]?.stem && index < natalAndLuckPillars.length - 1 && !natalAndLuckPillars[index + 1].isUnknown && getWuXingRelation(pillar.stem.element, natalAndLuckPillars[index + 1].stem.element)"
              class="absolute -right-3 top-1/2 -translate-y-1/2 text-lg font-bold z-30"
-             :class="getWuXingRelationClass(pillar.stem.element, pillarsOrdered[index + 1].stem.element)"
-             :title="`${pillar.stem.element} to ${pillarsOrdered[index + 1].stem.element}`">
-           {{ getWuXingRelation(pillar.stem.element, pillarsOrdered[index + 1].stem.element) }}
+             :class="getWuXingRelationClass(pillar.stem.element, natalAndLuckPillars[index + 1].stem.element)"
+             :title="`${pillar.stem.element} to ${natalAndLuckPillars[index + 1].stem.element}`">
+           {{ getWuXingRelation(pillar.stem.element, natalAndLuckPillars[index + 1].stem.element) }}
           </div>
          </div>
         </div>
         
          <!-- Right Partition: After 10-year luck pillar (position 4 only) -->
-         <div v-if="index === 4 && pillarsOrdered.length > 4" 
+         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
             class="relative flex-shrink-0 mx-3 self-stretch"
             style="width: 2px;">
           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
@@ -479,13 +495,13 @@
        
        <!-- Vertical WuXing Flow Indicators - Always present to maintain consistent spacing -->
        <div class="flex gap-1 -mt-1.5 -mb-1.5 relative z-40 items-center">
-        <template v-for="(pillar, index) in pillarsOrdered" :key="`flow-${index}`">
+        <template v-for="(pillar, index) in natalAndLuckPillars" :key="`flow-${index}`">
          <!-- Left Partition spacer: Before 10-year luck pillar -->
-         <div v-if="index === 4 && pillarsOrdered.length > 4" 
+         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
             class="flex-shrink-0 mx-3" style="width: 2px;"></div>
          
         <div class="flex justify-center items-center h-5 w-28 flex-shrink-0">
-         <div v-if="viewMode !== 'base' && !pillar.isUnknown && getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element)"
+         <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.stem && pillar.branch && getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element)"
             class="text-lg font-bold"
             :class="getVerticalWuXingClass(pillar.stem.element, pillar.branch.element)"
             :title="`${pillar.stem.element} to ${pillar.branch.element}`">
@@ -494,16 +510,16 @@
         </div>
         
          <!-- Right Partition spacer: After 10-year luck pillar -->
-         <div v-if="index === 4 && pillarsOrdered.length > 4" 
+         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
             class="flex-shrink-0 mx-3" style="width: 2px;"></div>
         </template>
        </div>
        
        <!-- Earthly Branches Row -->
        <div class="flex gap-1 overflow-visible items-stretch">
-        <template v-for="(pillar, index) in pillarsOrdered" :key="`branch-${index}`">
+        <template v-for="(pillar, index) in natalAndLuckPillars" :key="`branch-${index}`">
          <!-- Left Partition: Before 10-year luck pillar -->
-         <div v-if="index === 4 && pillarsOrdered.length > 4" 
+         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
             class="relative flex-shrink-0 mx-3 self-stretch"
             style="width: 2px;">
           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
@@ -524,10 +540,11 @@
            pillar.isMonthlyLuck && !includeMonthlyLuck ? 'opacity-40 grayscale' : '',
            pillar.isDailyLuck && !includeDailyLuck ? 'opacity-40 grayscale' : '',
            pillar.isHourlyLuck && !includeHourlyLuck ? 'opacity-40 grayscale' : '',
+           (pillar.isTalismanYear || pillar.isTalismanMonth || pillar.isTalismanDay || pillar.isTalismanHour) ? 'border-2 border-teal-500' : '',
            pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
           ]"
           :style="pillar.isUnknown ? { aspectRatio: '1/1.2' } : {
-           ...getNodeBgColor(pillar.branch.element, pillar.branch.color),
+           ...(pillar.branch ? getNodeBgColor(pillar.branch.element, pillar.branch.color) : {}),
            aspectRatio: '1/1.2' // 20% taller than square
           }"
          >
@@ -572,15 +589,16 @@
           <!-- Main content with proper spacing from bottom -->
           <div class="flex-1 flex flex-col items-center justify-center pb-10">
            <!-- Branch pinyin name (always show original) -->
-           <div v-if="!pillar.isUnknown" class="text-xs text-gray-700 mb-1">
+           <div v-if="!pillar.isUnknown && pillar.branchName" class="text-xs text-gray-700 mb-1">
             {{ pillar.branchName }}
            </div>
            <!-- Chinese character (always show original from base) -->
-           <div class="text-2xl font-bold text-black">
+           <div v-if="pillar.branch" class="text-2xl font-bold text-black">
             {{ pillar.branch.chinese }}
            </div>
+           <div v-else class="text-xl text-gray-400">-</div>
            <!-- Animal name (only show if not a pure element transformation) -->
-           <div v-if="!pillar.isUnknown && !['Fire', 'Water', 'Metal', 'Wood', 'Earth'].includes(pillar.branch.animal)" class="text-xs text-gray-800">{{ pillar.branch.animal }}</div>
+           <div v-if="!pillar.isUnknown && pillar.branch && !['Fire', 'Water', 'Metal', 'Wood', 'Earth'].includes(pillar.branch.animal)" class="text-xs text-gray-800">{{ pillar.branch.animal }}</div>
           </div>
           
           <!-- Combination Badges (bottom-right corner, above hidden stems) -->
@@ -624,17 +642,17 @@
           
           
           <!-- Horizontal WuXing Flow to Next Branch (only in post/transformed view) -->
-          <div v-if="viewMode !== 'base' && !pillar.isUnknown && index < pillarsOrdered.length - 1 && !pillarsOrdered[index + 1].isUnknown && getWuXingRelation(pillar.branch.element, pillarsOrdered[index + 1].branch.element)"
+          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.branch && natalAndLuckPillars[index + 1]?.branch && index < natalAndLuckPillars.length - 1 && !natalAndLuckPillars[index + 1].isUnknown && getWuXingRelation(pillar.branch.element, natalAndLuckPillars[index + 1].branch.element)"
              class="absolute -right-3 top-1/3 -translate-y-1/2 text-lg font-bold z-50"
-             :class="getWuXingRelationClass(pillar.branch.element, pillarsOrdered[index + 1].branch.element)"
-             :title="`${pillar.branch.element} to ${pillarsOrdered[index + 1].branch.element}`">
-           {{ getWuXingRelation(pillar.branch.element, pillarsOrdered[index + 1].branch.element) }}
+             :class="getWuXingRelationClass(pillar.branch.element, natalAndLuckPillars[index + 1].branch.element)"
+             :title="`${pillar.branch.element} to ${natalAndLuckPillars[index + 1].branch.element}`">
+           {{ getWuXingRelation(pillar.branch.element, natalAndLuckPillars[index + 1].branch.element) }}
           </div>
          </div>
         </div>
         
          <!-- Right Partition: After 10-year luck pillar -->
-         <div v-if="index === 4 && pillarsOrdered.length > 4" 
+         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
             class="relative flex-shrink-0 mx-3 self-stretch"
             style="width: 2px;">
           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
@@ -675,19 +693,357 @@
        
       </div>
       
-      <!-- Interaction Tooltip -->
-      <div 
-       v-if="tooltipContent"
-       class="absolute bg-gray-900 text-white text-xs p-3 shadow-xl z-50 max-w-xs pointer-events-none"
-       :style="{ left: tooltipPosition.x + 'px', top: tooltipPosition.y + 'px' }"
-      >
-       <div class="font-semibold mb-1">{{ tooltipContent.title }}</div>
-       <div class="text-gray-300">{{ tooltipContent.description }}</div>
-       <div v-if="tooltipContent.effect" class="mt-1 text-yellow-300">
-        Effect: {{ tooltipContent.effect }}
+      <!-- Talisman Input Section (符) - Input controls as header -->
+      <div v-if="showTalismans" class="relative overflow-x-auto max-w-lg mt-6 mb-4">
+       <div class="flex items-center gap-2 mb-3">
+        <span class="text-sm font-semibold text-teal-700">符 Talisman Configuration</span>
+        <span v-if="hasInvalidTalismanPairs" class="text-xs text-red-600 font-semibold">⚠ Invalid Jia-Zi pairs detected</span>
+       </div>
+       
+       <div class="flex gap-1">
+        <!-- Talisman Hour -->
+        <div class="w-28 flex-shrink-0">
+         <div class="flex items-center justify-center gap-1 mb-1">
+          <span class="text-[10px] font-semibold text-center text-teal-700">符時<br/>Hour</span>
+          <span v-if="!isValidJiaziPair(talismanHourHS, talismanHourEB)" class="text-red-600 text-xs" title="Invalid Jia-Zi pair">⚠️</span>
+         </div>
+         <div class="flex flex-col gap-1">
+          <select 
+           v-model="talismanHourHS" 
+           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
+           :class="isValidJiaziPair(talismanHourHS, talismanHourEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
+           @change="handleInputChange"
+          >
+           <option :value="null">-- HS --</option>
+           <option v-for="stem in HEAVENLY_STEMS_LIST" :key="stem.id" :value="stem.id">{{ stem.display }}</option>
+          </select>
+          <select 
+           v-model="talismanHourEB" 
+           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
+           :class="isValidJiaziPair(talismanHourHS, talismanHourEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
+           @change="handleInputChange"
+          >
+           <option :value="null">-- EB --</option>
+           <option v-for="branch in EARTHLY_BRANCHES_LIST" :key="branch.id" :value="branch.id">{{ branch.display }}</option>
+          </select>
+         </div>
+        </div>
+        
+        <!-- Talisman Day -->
+        <div class="w-28 flex-shrink-0">
+         <div class="flex items-center justify-center gap-1 mb-1">
+          <span class="text-[10px] font-semibold text-center text-teal-700">符日<br/>Day</span>
+          <span v-if="!isValidJiaziPair(talismanDayHS, talismanDayEB)" class="text-red-600 text-xs" title="Invalid Jia-Zi pair">⚠️</span>
+         </div>
+         <div class="flex flex-col gap-1">
+          <select 
+           v-model="talismanDayHS" 
+           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
+           :class="isValidJiaziPair(talismanDayHS, talismanDayEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
+           @change="handleInputChange"
+          >
+           <option :value="null">-- HS --</option>
+           <option v-for="stem in HEAVENLY_STEMS_LIST" :key="stem.id" :value="stem.id">{{ stem.display }}</option>
+          </select>
+          <select 
+           v-model="talismanDayEB" 
+           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
+           :class="isValidJiaziPair(talismanDayHS, talismanDayEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
+           @change="handleInputChange"
+          >
+           <option :value="null">-- EB --</option>
+           <option v-for="branch in EARTHLY_BRANCHES_LIST" :key="branch.id" :value="branch.id">{{ branch.display }}</option>
+          </select>
+         </div>
+        </div>
+        
+        <!-- Talisman Month -->
+        <div class="w-28 flex-shrink-0">
+         <div class="flex items-center justify-center gap-1 mb-1">
+          <span class="text-[10px] font-semibold text-center text-teal-700">符月<br/>Month</span>
+          <span v-if="!isValidJiaziPair(talismanMonthHS, talismanMonthEB)" class="text-red-600 text-xs" title="Invalid Jia-Zi pair">⚠️</span>
+         </div>
+         <div class="flex flex-col gap-1">
+          <select 
+           v-model="talismanMonthHS" 
+           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
+           :class="isValidJiaziPair(talismanMonthHS, talismanMonthEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
+           @change="handleInputChange"
+          >
+           <option :value="null">-- HS --</option>
+           <option v-for="stem in HEAVENLY_STEMS_LIST" :key="stem.id" :value="stem.id">{{ stem.display }}</option>
+          </select>
+          <select 
+           v-model="talismanMonthEB" 
+           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
+           :class="isValidJiaziPair(talismanMonthHS, talismanMonthEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
+           @change="handleInputChange"
+          >
+           <option :value="null">-- EB --</option>
+           <option v-for="branch in EARTHLY_BRANCHES_LIST" :key="branch.id" :value="branch.id">{{ branch.display }}</option>
+          </select>
+         </div>
+        </div>
+        
+        <!-- Talisman Year -->
+        <div class="w-28 flex-shrink-0">
+         <div class="flex items-center justify-center gap-1 mb-1">
+          <span class="text-[10px] font-semibold text-center text-teal-700">符年<br/>Year</span>
+          <span v-if="!isValidJiaziPair(talismanYearHS, talismanYearEB)" class="text-red-600 text-xs" title="Invalid Jia-Zi pair">⚠️</span>
+         </div>
+         <div class="flex flex-col gap-1">
+          <select 
+           v-model="talismanYearHS" 
+           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
+           :class="isValidJiaziPair(talismanYearHS, talismanYearEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
+           @change="handleInputChange"
+          >
+           <option :value="null">-- HS --</option>
+           <option v-for="stem in HEAVENLY_STEMS_LIST" :key="stem.id" :value="stem.id">{{ stem.display }}</option>
+          </select>
+          <select 
+           v-model="talismanYearEB" 
+           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
+           :class="isValidJiaziPair(talismanYearHS, talismanYearEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
+           @change="handleInputChange"
+          >
+           <option :value="null">-- EB --</option>
+           <option v-for="branch in EARTHLY_BRANCHES_LIST" :key="branch.id" :value="branch.id">{{ branch.display }}</option>
+          </select>
+         </div>
+        </div>
+       </div>
+      </div>
+      
+      <!-- Talisman Pillars Display (符) - Chart display below input controls -->
+      <div v-if="showTalismans && talismanPillarsDisplay.some(p => p !== null)" class="relative overflow-x-auto max-w-lg">
+       <div class="mb-2">
+        <span class="text-sm font-semibold text-teal-700">符 Talisman Pillars</span>
+       </div>
+       
+       <!-- Talisman Stems Row -->
+       <div class="flex gap-1 items-center">
+        <template v-for="(pillar, index) in talismanPillarsDisplay" :key="`talisman-stem-${index}`">
+         <!-- Empty slot if no talisman for this position -->
+         <div v-if="!pillar" class="w-28 flex-shrink-0"></div>
+         
+         <!-- Talisman Stem Cell -->
+         <div v-else class="relative w-28 flex-shrink-0">
+          <div 
+           :id="`talisman-stem-${index}`"
+           class="aspect-square p-3 transition-all duration-300 relative flex flex-col items-center justify-center border-2 border-teal-500"
+           :class="[
+            hoveredNode === `talisman-stem-${index}` ? 'shadow-lg scale-105' : '',
+            getNodeHighlightClass(`talisman-stem-${index}`),
+            highlightedNodes.includes(`talisman-stem-${index}`) ? 'z-50' : '',
+            pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
+           ]"
+           :style="pillar.isUnknown ? {} : (pillar.stem ? getNodeBgColor(pillar.stem.element, pillar.stem.color) : {})"
+          >
+           <!-- Negative Badges (top-left) -->
+           <div v-if="pillar.stemNegatives && pillar.stemNegatives.length > 0" 
+              class="absolute top-1 left-1 gap-0.5 z-20"
+              :class="pillar.stemNegatives.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-start'">
+            <div v-for="(neg, idx) in pillar.stemNegatives" 
+               :key="`talisman-stem-neg-${index}-${idx}`"
+               class="flex items-center justify-center font-bold transition-transform cursor-help"
+               :class="[
+                getNegativeBadgeSizeClass(neg.strength),
+                isBadgeHighlighted(neg) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getNegativeBadgeStyle(neg)"
+               :title="getNegativeBadgeTooltip(neg)"
+               @mouseenter="handleBadgeHover(neg)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getNegativeBadgeSymbol(neg) }}</span>
+            </div>
+           </div>
+           
+           <!-- Transformation Badges (top-right) -->
+           <div v-if="pillar.stemTransformations && pillar.stemTransformations.length > 0" 
+              class="absolute top-1 right-1 gap-0.5"
+              :class="pillar.stemTransformations.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-end'">
+            <div v-for="(trans, idx) in pillar.stemTransformations" 
+               :key="`talisman-stem-trans-${index}-${idx}`"
+               class="flex items-center justify-center font-bold rounded-full shadow-md transition-transform cursor-help"
+               :class="[
+                getTransformationSizeClass(trans.strength),
+                isBadgeHighlighted(trans) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getTransformationBadgeStyles(trans)"
+               :title="getTransformationTooltip(trans)"
+               @mouseenter="handleBadgeHover(trans)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getTransformBadgeDisplay(trans.badge) }}</span>
+            </div>
+           </div>
+           
+           <!-- Pinyin name -->
+           <div v-if="!pillar.isUnknown && pillar.stemName" class="text-xs text-gray-700 mb-1">{{ pillar.stemName }}</div>
+           <!-- Chinese character -->
+           <div v-if="pillar.stem" class="text-2xl font-bold text-black">{{ pillar.stem.chinese }}</div>
+           <div v-else class="text-xl text-gray-400">-</div>
+           <!-- Element type -->
+           <div v-if="!pillar.isUnknown && pillar.stem" class="text-xs text-gray-700">
+            {{ pillar.stem.element.replace('Yang ', '').replace('Yin ', '') }} {{ pillar.stem.element.includes('Yang') ? '+' : '-' }}
+           </div>
+           <!-- Ten God -->
+           <div v-if="!pillar.isUnknown" class="text-xs mt-1 text-gray-900">{{ pillar.tenGod || '' }}</div>
+           
+           <!-- Combination Badges (bottom-right) -->
+           <div v-if="pillar.stemCombinations && pillar.stemCombinations.length > 0" 
+              class="absolute bottom-1 right-1 gap-0.5 flex items-start content-start"
+              :class="pillar.stemCombinations.length >= 3 ? 'flex-wrap-reverse flex-row justify-end' : 'flex-row items-end'"
+              :style="pillar.stemCombinations.length >= 3 ? 'max-width: 40px;' : ''">
+            <div v-for="(comb, idx) in pillar.stemCombinations" 
+               :key="`talisman-stem-comb-${index}-${idx}`"
+               class="flex items-center justify-center font-bold rounded-full transition-transform cursor-help"
+               :class="[
+                getCombinationBadgeSizeClass(comb.strength),
+                isBadgeHighlighted(comb) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getCombinationBadgeStyle(comb)"
+               :title="getCombinationTooltip(comb)"
+               @mouseenter="handleBadgeHover(comb)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getTransformBadgeDisplay(comb.badge) }}</span>
+            </div>
+           </div>
+          </div>
+         </div>
+        </template>
+       </div>
+       
+       <!-- Vertical Flow Indicators (Stem to Branch) -->
+       <div class="flex gap-1 -mt-1.5 -mb-1.5 relative z-40 items-center">
+        <template v-for="(pillar, index) in talismanPillarsDisplay" :key="`talisman-flow-${index}`">
+         <div class="flex justify-center items-center h-5 w-28 flex-shrink-0">
+          <div v-if="pillar && viewMode !== 'base' && !pillar.isUnknown && pillar.stem && pillar.branch && getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element)"
+             class="text-lg font-bold"
+             :class="getVerticalWuXingClass(pillar.stem.element, pillar.branch.element)"
+             :title="`${pillar.stem.element} to ${pillar.branch.element}`">
+           {{ getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element) }}
+          </div>
+         </div>
+        </template>
+       </div>
+       
+       <!-- Talisman Branches Row -->
+       <div class="flex gap-1 overflow-visible items-stretch">
+        <template v-for="(pillar, index) in talismanPillarsDisplay" :key="`talisman-branch-${index}`">
+         <!-- Empty slot if no talisman -->
+         <div v-if="!pillar" class="w-28 flex-shrink-0"></div>
+         
+         <!-- Talisman Branch Cell -->
+         <div v-else class="relative w-28 flex-shrink-0">
+          <div 
+           :id="`talisman-branch-${index}`"
+           class="pb-0 pt-2 px-3 transition-all duration-300 relative flex flex-col items-center justify-start border-2 border-teal-500"
+           :class="[
+            hoveredNode === `talisman-branch-${index}` ? 'shadow-lg scale-105' : '',
+            getNodeHighlightClass(`talisman-branch-${index}`),
+            highlightedNodes.includes(`talisman-branch-${index}`) ? 'z-50' : '',
+            pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
+           ]"
+           :style="pillar.isUnknown ? { aspectRatio: '1/1.2' } : {
+            ...(pillar.branch ? getNodeBgColor(pillar.branch.element, pillar.branch.color) : {}),
+            aspectRatio: '1/1.2'
+           }"
+          >
+           <!-- Negative Badges (top-left) -->
+           <div v-if="pillar.branchNegatives && pillar.branchNegatives.length > 0" 
+              class="absolute top-1 left-1 gap-0.5 z-20"
+              :class="pillar.branchNegatives.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-start'">
+            <div v-for="(neg, idx) in pillar.branchNegatives" 
+               :key="`talisman-branch-neg-${index}-${idx}`"
+               class="flex items-center justify-center font-bold transition-transform cursor-help"
+               :class="[
+                getNegativeBadgeSizeClass(neg.strength),
+                isBadgeHighlighted(neg) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getNegativeBadgeStyle(neg)"
+               :title="getNegativeBadgeTooltip(neg)"
+               @mouseenter="handleBadgeHover(neg)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getNegativeBadgeSymbol(neg) }}</span>
+            </div>
+           </div>
+           
+           <!-- Transformation Badges (top-right) -->
+           <div v-if="pillar.branchTransformations && pillar.branchTransformations.length > 0" 
+              class="absolute top-1 right-1 gap-0.5 z-10"
+              :class="pillar.branchTransformations.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-end'">
+            <div v-for="(trans, idx) in pillar.branchTransformations" 
+               :key="`talisman-branch-trans-${index}-${idx}`"
+               class="flex items-center justify-center font-bold rounded-full shadow-md transition-transform cursor-help"
+               :class="[
+                getTransformationSizeClass(trans.strength),
+                isBadgeHighlighted(trans) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getTransformationBadgeStyles(trans)"
+               :title="getTransformationTooltip(trans)"
+               @mouseenter="handleBadgeHover(trans)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getTransformBadgeDisplay(trans.badge) }}</span>
+            </div>
+           </div>
+           
+           <!-- Main content -->
+           <div class="flex-1 flex flex-col items-center justify-center pb-10">
+            <!-- Branch pinyin name -->
+            <div v-if="!pillar.isUnknown && pillar.branchName" class="text-xs text-gray-700 mb-1">{{ pillar.branchName }}</div>
+            <!-- Chinese character -->
+            <div v-if="pillar.branch" class="text-2xl font-bold text-black">{{ pillar.branch.chinese }}</div>
+            <div v-else class="text-xl text-gray-400">-</div>
+            <!-- Animal name -->
+            <div v-if="!pillar.isUnknown && pillar.branch && !['Fire', 'Water', 'Metal', 'Wood', 'Earth'].includes(pillar.branch.animal)" class="text-xs text-gray-800">{{ pillar.branch.animal }}</div>
+           </div>
+           
+           <!-- Combination Badges (bottom-right, above hidden stems) -->
+           <div v-if="pillar.branchCombinations && pillar.branchCombinations.length > 0" 
+              class="absolute bottom-11 right-1 gap-0.5 z-20 flex items-start content-start"
+              :class="pillar.branchCombinations.length >= 3 ? 'flex-wrap-reverse flex-row justify-end' : 'flex-row items-end'"
+              :style="pillar.branchCombinations.length >= 3 ? 'max-width: 40px;' : ''">
+            <div v-for="(comb, idx) in pillar.branchCombinations" 
+               :key="`talisman-branch-comb-${index}-${idx}`"
+               class="flex items-center justify-center font-bold rounded-full transition-transform cursor-help"
+               :class="[
+                getCombinationBadgeSizeClass(comb.strength),
+                isBadgeHighlighted(comb) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getCombinationBadgeStyle(comb)"
+               :title="getCombinationTooltip(comb)"
+               @mouseenter="handleBadgeHover(comb)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getTransformBadgeDisplay(comb.badge) }}</span>
+            </div>
+           </div>
+           
+           <!-- Hidden Heavenly Stems -->
+           <div v-if="pillar.hiddenStems || pillar.hiddenQi" class="absolute bottom-0 left-0 right-0 flex overflow-hidden h-10">
+            <div 
+             v-for="(qiData, stem) in getHiddenStemsWithWeights(pillar)" 
+             :key="stem"
+             class="flex flex-col items-center justify-start text-black overflow-hidden pt-1 pb-0.5 h-full"
+             :style="{
+              ...getNodeBgColor(getStemElement(stem), qiData.color),
+              width: `${qiData.weight}%`
+             }"
+             :title="`${stem}: ${qiData.god ? qiData.god + ' - ' : ''}Score: ${qiData.score || 'N/A'} (${qiData.weight}%)`"
+            >
+             <div class="text-[8px] text-gray-600 leading-tight">{{ stem }}</div>
+             <div class="text-[10px] text-black leading-tight">{{ stemMappings[stem] || stem }}</div>
+             <div class="text-[8px] text-gray-800 font-medium leading-tight">{{ qiData.god || '' }}</div>
+            </div>
+           </div>
+          </div>
+         </div>
+        </template>
        </div>
       </div>
      </div>
+       
+      <!-- Interaction Tooltip -->
      
      <!-- Element Scores Comparison (Wu Xing) -->
      <div v-if="chartData?.daymaster_analysis" class="mt-2 p-2 bg-white shadow-sm border border-gray-200 max-w-2xl">
@@ -923,6 +1279,15 @@ function saveToStorage() {
    includeMonthlyLuck: includeMonthlyLuck.value,
    includeDailyLuck: includeDailyLuck.value,
    includeHourlyLuck: includeHourlyLuck.value,
+   showTalismans: showTalismans.value,
+   talismanYearHS: talismanYearHS.value,
+   talismanYearEB: talismanYearEB.value,
+   talismanMonthHS: talismanMonthHS.value,
+   talismanMonthEB: talismanMonthEB.value,
+   talismanDayHS: talismanDayHS.value,
+   talismanDayEB: talismanDayEB.value,
+   talismanHourHS: talismanHourHS.value,
+   talismanHourEB: talismanHourEB.value,
    viewMode: viewMode.value
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
@@ -936,6 +1301,7 @@ const savedData = loadFromStorage()
 
 // Quick test presets
 const testPresets = [
+ { date: '1969-07-04', time: '18:20', gender: 'female' },
  { date: '1992-07-06', time: '09:30', gender: 'female' },
  { date: '1995-04-19', time: '17:30', gender: 'male' },
  { date: '1985-06-23', time: '13:30', gender: 'male' },
@@ -945,6 +1311,117 @@ const testPresets = [
  { date: '1995-07-18', time: '16:30', gender: 'female' },
  { date: '1992-09-18', time: '09:30', gender: 'female' }
 ]
+
+// Heavenly Stems for dropdowns (10 stems)
+const HEAVENLY_STEMS_LIST = [
+  { id: 'Jia', display: '甲 Jia (Yang Wood)' },
+  { id: 'Yi', display: '乙 Yi (Yin Wood)' },
+  { id: 'Bing', display: '丙 Bing (Yang Fire)' },
+  { id: 'Ding', display: '丁 Ding (Yin Fire)' },
+  { id: 'Wu', display: '戊 Wu (Yang Earth)' },
+  { id: 'Ji', display: '己 Ji (Yin Earth)' },
+  { id: 'Geng', display: '庚 Geng (Yang Metal)' },
+  { id: 'Xin', display: '辛 Xin (Yin Metal)' },
+  { id: 'Ren', display: '壬 Ren (Yang Water)' },
+  { id: 'Gui', display: '癸 Gui (Yin Water)' }
+]
+
+// Earthly Branches for dropdowns (12 branches)
+const EARTHLY_BRANCHES_LIST = [
+  { id: 'Zi', display: '子 Zi (Rat)' },
+  { id: 'Chou', display: '丑 Chou (Ox)' },
+  { id: 'Yin', display: '寅 Yin (Tiger)' },
+  { id: 'Mao', display: '卯 Mao (Rabbit)' },
+  { id: 'Chen', display: '辰 Chen (Dragon)' },
+  { id: 'Si', display: '巳 Si (Snake)' },
+  { id: 'Wu', display: '午 Wu (Horse)' },
+  { id: 'Wei', display: '未 Wei (Goat)' },
+  { id: 'Shen', display: '申 Shen (Monkey)' },
+  { id: 'You', display: '酉 You (Rooster)' },
+  { id: 'Xu', display: '戌 Xu (Dog)' },
+  { id: 'Hai', display: '亥 Hai (Pig)' }
+]
+
+// 60 Jia-Zi combinations (traditional order) - for validation
+const JIAZI_60 = [
+  { stem: 'Jia', branch: 'Zi', display: '甲子 Jia-Zi' },
+  { stem: 'Yi', branch: 'Chou', display: '乙丑 Yi-Chou' },
+  { stem: 'Bing', branch: 'Yin', display: '丙寅 Bing-Yin' },
+  { stem: 'Ding', branch: 'Mao', display: '丁卯 Ding-Mao' },
+  { stem: 'Wu', branch: 'Chen', display: '戊辰 Wu-Chen' },
+  { stem: 'Ji', branch: 'Si', display: '己巳 Ji-Si' },
+  { stem: 'Geng', branch: 'Wu', display: '庚午 Geng-Wu' },
+  { stem: 'Xin', branch: 'Wei', display: '辛未 Xin-Wei' },
+  { stem: 'Ren', branch: 'Shen', display: '壬申 Ren-Shen' },
+  { stem: 'Gui', branch: 'You', display: '癸酉 Gui-You' },
+  { stem: 'Jia', branch: 'Xu', display: '甲戌 Jia-Xu' },
+  { stem: 'Yi', branch: 'Hai', display: '乙亥 Yi-Hai' },
+  { stem: 'Bing', branch: 'Zi', display: '丙子 Bing-Zi' },
+  { stem: 'Ding', branch: 'Chou', display: '丁丑 Ding-Chou' },
+  { stem: 'Wu', branch: 'Yin', display: '戊寅 Wu-Yin' },
+  { stem: 'Ji', branch: 'Mao', display: '己卯 Ji-Mao' },
+  { stem: 'Geng', branch: 'Chen', display: '庚辰 Geng-Chen' },
+  { stem: 'Xin', branch: 'Si', display: '辛巳 Xin-Si' },
+  { stem: 'Ren', branch: 'Wu', display: '壬午 Ren-Wu' },
+  { stem: 'Gui', branch: 'Wei', display: '癸未 Gui-Wei' },
+  { stem: 'Jia', branch: 'Shen', display: '甲申 Jia-Shen' },
+  { stem: 'Yi', branch: 'You', display: '乙酉 Yi-You' },
+  { stem: 'Bing', branch: 'Xu', display: '丙戌 Bing-Xu' },
+  { stem: 'Ding', branch: 'Hai', display: '丁亥 Ding-Hai' },
+  { stem: 'Wu', branch: 'Zi', display: '戊子 Wu-Zi' },
+  { stem: 'Ji', branch: 'Chou', display: '己丑 Ji-Chou' },
+  { stem: 'Geng', branch: 'Yin', display: '庚寅 Geng-Yin' },
+  { stem: 'Xin', branch: 'Mao', display: '辛卯 Xin-Mao' },
+  { stem: 'Ren', branch: 'Chen', display: '壬辰 Ren-Chen' },
+  { stem: 'Gui', branch: 'Si', display: '癸巳 Gui-Si' },
+  { stem: 'Jia', branch: 'Wu', display: '甲午 Jia-Wu' },
+  { stem: 'Yi', branch: 'Wei', display: '乙未 Yi-Wei' },
+  { stem: 'Bing', branch: 'Shen', display: '丙申 Bing-Shen' },
+  { stem: 'Ding', branch: 'You', display: '丁酉 Ding-You' },
+  { stem: 'Wu', branch: 'Xu', display: '戊戌 Wu-Xu' },
+  { stem: 'Ji', branch: 'Hai', display: '己亥 Ji-Hai' },
+  { stem: 'Geng', branch: 'Zi', display: '庚子 Geng-Zi' },
+  { stem: 'Xin', branch: 'Chou', display: '辛丑 Xin-Chou' },
+  { stem: 'Ren', branch: 'Yin', display: '壬寅 Ren-Yin' },
+  { stem: 'Gui', branch: 'Mao', display: '癸卯 Gui-Mao' },
+  { stem: 'Jia', branch: 'Chen', display: '甲辰 Jia-Chen' },
+  { stem: 'Yi', branch: 'Si', display: '乙巳 Yi-Si' },
+  { stem: 'Bing', branch: 'Wu', display: '丙午 Bing-Wu' },
+  { stem: 'Ding', branch: 'Wei', display: '丁未 Ding-Wei' },
+  { stem: 'Wu', branch: 'Shen', display: '戊申 Wu-Shen' },
+  { stem: 'Ji', branch: 'You', display: '己酉 Ji-You' },
+  { stem: 'Geng', branch: 'Xu', display: '庚戌 Geng-Xu' },
+  { stem: 'Xin', branch: 'Hai', display: '辛亥 Xin-Hai' },
+  { stem: 'Ren', branch: 'Zi', display: '壬子 Ren-Zi' },
+  { stem: 'Gui', branch: 'Chou', display: '癸丑 Gui-Chou' },
+  { stem: 'Jia', branch: 'Yin', display: '甲寅 Jia-Yin' },
+  { stem: 'Yi', branch: 'Mao', display: '乙卯 Yi-Mao' },
+  { stem: 'Bing', branch: 'Chen', display: '丙辰 Bing-Chen' },
+  { stem: 'Ding', branch: 'Si', display: '丁巳 Ding-Si' },
+  { stem: 'Wu', branch: 'Wu', display: '戊午 Wu-Wu' },
+  { stem: 'Ji', branch: 'Wei', display: '己未 Ji-Wei' },
+  { stem: 'Geng', branch: 'Shen', display: '庚申 Geng-Shen' },
+  { stem: 'Xin', branch: 'You', display: '辛酉 Xin-You' },
+  { stem: 'Ren', branch: 'Xu', display: '壬戌 Ren-Xu' },
+  { stem: 'Gui', branch: 'Hai', display: '癸亥 Gui-Hai' }
+]
+
+// Validation: Check if HS+EB combination is valid Jia-Zi pair
+function isValidJiaziPair(hs, eb) {
+  // If either is null, it's valid (partial selection allowed)
+  if (!hs || !eb) return true
+  
+  // Check if the combination exists in JIAZI_60
+  return JIAZI_60.some(pair => pair.stem === hs && pair.branch === eb)
+}
+
+// Computed: Check if any talisman pair is invalid
+const hasInvalidTalismanPairs = computed(() => {
+  return !isValidJiaziPair(talismanYearHS.value, talismanYearEB.value) ||
+         !isValidJiaziPair(talismanMonthHS.value, talismanMonthEB.value) ||
+         !isValidJiaziPair(talismanDayHS.value, talismanDayEB.value) ||
+         !isValidJiaziPair(talismanHourHS.value, talismanHourEB.value)
+})
 
 // Form data
 const birthDate = ref(savedData?.birthDate || '1992-07-06')
@@ -972,6 +1449,17 @@ const includeMonthlyLuck = ref(savedData?.includeMonthlyLuck !== undefined ? sav
 const includeDailyLuck = ref(savedData?.includeDailyLuck !== undefined ? savedData.includeDailyLuck : true)
 const includeHourlyLuck = ref(savedData?.includeHourlyLuck !== undefined ? savedData.includeHourlyLuck : true)
 
+// Talisman selection (符) - Separate HS and EB selection
+const showTalismans = ref(savedData?.showTalismans || false)
+const talismanYearHS = ref(savedData?.talismanYearHS || null)
+const talismanYearEB = ref(savedData?.talismanYearEB || null)
+const talismanMonthHS = ref(savedData?.talismanMonthHS || null)
+const talismanMonthEB = ref(savedData?.talismanMonthEB || null)
+const talismanDayHS = ref(savedData?.talismanDayHS || null)
+const talismanDayEB = ref(savedData?.talismanDayEB || null)
+const talismanHourHS = ref(savedData?.talismanHourHS || null)
+const talismanHourEB = ref(savedData?.talismanHourEB || null)
+
 // Calculate grid columns for luck pillars (backward compatibility)
 const luckPillarCount = computed(() => {
  let count = 0
@@ -996,8 +1484,14 @@ const totalPillarCount = computed(() => {
   if (info.has_hourly) count++    // Hourly
  }
  
- // Ensure count is within valid range (4-9)
- return Math.max(4, Math.min(9, count))
+ // Add talisman pillars (use ty/tm/td/th node IDs)
+ if (chartData.value?.hs_ty || chartData.value?.eb_ty) count++ // Talisman year
+ if (chartData.value?.hs_tm || chartData.value?.eb_tm) count++ // Talisman month
+ if (chartData.value?.hs_td || chartData.value?.eb_td) count++ // Talisman day
+ if (chartData.value?.hs_th || chartData.value?.eb_th) count++ // Talisman hour
+ 
+ // Ensure count is within valid range (4-13 with talismans)
+ return Math.max(4, Math.min(13, count))
 })
 
 // Update birthDate from individual pillar inputs
@@ -1353,7 +1847,7 @@ function getNode(nodeId) {
 
 // Helper function to enrich badge with interaction data
 function enrichBadgeWithInteraction(badge) {
- if (!badge) return badge
+ if (!badge || !badge.interaction_id) return badge
  
  // Map size to strength for backward compatibility
  const sizeToStrength = {
@@ -1405,12 +1899,14 @@ function enrichBadgeWithInteraction(badge) {
  const interaction = chartData.value?.interactions?.[normalizedId] || chartData.value?.interactions?.[badge.interaction_id] || {}
  
  return {
-  badge: badge.badge,
-  type: interaction.type || badge.type,
+  badge: badge.badge || '',
+  type: interaction.type || badge.type || '',
   element: interaction.element || '',
   pattern: interaction.pattern || '',
   strength: sizeToStrength[badge.size] || 'normal',
-  interaction_id: badge.interaction_id
+  interaction_id: badge.interaction_id,
+  interactionKey: normalizedId,
+  tooltip: interaction.description || badge.type || ''
  }
 }
 
@@ -1442,7 +1938,7 @@ const pillars = computed(() => {
   const stemBadges = usePost ? (hsNode?.badges || []) : []
   const stemTransformations = stemBadges.filter(b => b.type === 'transformation').map(b => enrichBadgeWithInteraction(b))
   const stemCombinations = stemBadges.filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b))
-  const stemNegatives = stemBadges.filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b))
+  const stemNegatives = stemBadges.filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b))
   
   // Check if stem transformed to element name (like "Yang Metal")
   const isElementName = stemId && stemId.includes(' ') && ['Yang', 'Yin'].some(p => stemId.startsWith(p))
@@ -1510,7 +2006,7 @@ const pillars = computed(() => {
   const branchBadges = usePost ? (ebNode?.badges || []) : []
   const branchTransformations = branchBadges.filter(b => b.type === 'transformation').map(b => enrichBadgeWithInteraction(b))
   const branchCombinations = branchBadges.filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b))
-  const branchNegatives = branchBadges.filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b))
+  const branchNegatives = branchBadges.filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b))
   
   // Check if branch transformed to pure element (Fire, Water, etc)
   const isElementTransformation = usePost && ['Fire', 'Water', 'Metal', 'Wood', 'Earth'].includes(branchId)
@@ -1715,8 +2211,8 @@ const luckPillarsOrdered = computed(() => {
    branchTransformations: (ebLuckNode?.badges || []).filter(b => b.type === 'transformation').map(b => enrichBadgeWithInteraction(b)),
    stemCombinations: (hsLuckNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
    branchCombinations: (ebLuckNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
-   stemNegatives: (hsLuckNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
-   branchNegatives: (ebLuckNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+   stemNegatives: (hsLuckNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+   branchNegatives: (ebLuckNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
    isLuckPillar: true,
    timing: currentLuckPillar.value.timing
   })
@@ -1776,8 +2272,8 @@ const luckPillarsOrdered = computed(() => {
    branchTransformations: (ebAnnualNode?.badges || []).filter(b => b.type === 'transformation').map(b => enrichBadgeWithInteraction(b)),
    stemCombinations: (hsAnnualNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
    branchCombinations: (ebAnnualNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
-   stemNegatives: (hsAnnualNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
-   branchNegatives: (ebAnnualNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+   stemNegatives: (hsAnnualNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+   branchNegatives: (ebAnnualNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
    isAnnualLuck: true,
    year: annualLuckPillar.value.year
   })
@@ -1834,8 +2330,8 @@ const luckPillarsOrdered = computed(() => {
     branchTransformations: (ebMonthlyNode?.badges || []).filter(b => b.type === 'transformation').map(b => enrichBadgeWithInteraction(b)),
     stemCombinations: (hsMonthlyNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
     branchCombinations: (ebMonthlyNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
-    stemNegatives: (hsMonthlyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
-    branchNegatives: (ebMonthlyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+    stemNegatives: (hsMonthlyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+    branchNegatives: (ebMonthlyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
     isMonthlyLuck: true
    })
   }
@@ -1892,8 +2388,8 @@ const luckPillarsOrdered = computed(() => {
     branchTransformations: (ebDailyNode?.badges || []).filter(b => b.type === 'transformation').map(b => enrichBadgeWithInteraction(b)),
     stemCombinations: (hsDailyNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
     branchCombinations: (ebDailyNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
-    stemNegatives: (hsDailyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
-    branchNegatives: (ebDailyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+    stemNegatives: (hsDailyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+    branchNegatives: (ebDailyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
     isDailyLuck: true
    })
   }
@@ -1950,8 +2446,8 @@ const luckPillarsOrdered = computed(() => {
     branchTransformations: (ebHourlyNode?.badges || []).filter(b => b.type === 'transformation').map(b => enrichBadgeWithInteraction(b)),
     stemCombinations: (hsHourlyNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
     branchCombinations: (ebHourlyNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
-    stemNegatives: (hsHourlyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
-    branchNegatives: (ebHourlyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+    stemNegatives: (hsHourlyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+    branchNegatives: (ebHourlyNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
     isHourlyLuck: true
    })
   }
@@ -1960,7 +2456,103 @@ const luckPillarsOrdered = computed(() => {
  return luckPillars
 })
 
-// Combined ordered pillars (for backward compatibility with interaction functions)
+// Talisman pillars (符) - User-selected pillars for harmony/balance
+const talismanPillarsOrdered = computed(() => {
+ if (!chartData.value?.mappings) return []
+ 
+ const talismanPillars = []
+ const mappings = chartData.value.mappings
+ const dayMasterStem = chartData.value?.hs_d?.id || 'Yi'
+ 
+ // Helper function to create talisman pillar (supports partial: HS-only, EB-only, or both)
+ const createTalismanPillar = (label, hsNode, ebNode, hsKey, ebKey, isYear, isMonth, isDay, isHour) => {
+  // Must have at least one node (HS or EB)
+  if (!hsNode && !ebNode) return null
+  
+  const hsName = hsNode?.id || null
+  const ebName = ebNode?.id || null
+  
+  const hsMapping = hsName ? (mappings.heavenly_stems?.[hsName] || {}) : {}
+  const ebMapping = ebName ? (mappings.earthly_branches?.[ebName] || {}) : {}
+  const tenGodData = hsName ? mappings.ten_gods?.[dayMasterStem]?.[hsName] : null
+  const tenGodLabel = tenGodData?.abbreviation || tenGodData?.id || ''
+  
+  // Hidden stems from eb.qi - use post_interaction_qi for post view, base_qi for base view (EXACT same as natal)
+  const usePost = viewMode.value === 'post'
+  const hiddenQi = usePost ? (ebNode?.post_interaction_qi || {}) : (ebNode?.base_qi || {})
+  
+  // Map hidden stems to Ten Gods using frontend mappings (EXACT same as natal)
+  const hiddenStems = {}
+  if (hiddenQi && mappings.ten_gods) {
+   for (const stemName of Object.keys(hiddenQi)) {
+    const tenGodData = mappings.ten_gods?.[dayMasterStem]?.[stemName]
+    hiddenStems[stemName] = tenGodData?.abbreviation || tenGodData?.id || ''
+   }
+  }
+  
+  return {
+   label,
+   stem: hsName ? {
+    chinese: hsMapping.chinese || hsName,
+    element: hsMapping.english || 'Unknown',
+    color: hsMapping.hex_color || '#808080'
+   } : null,
+   stemName: hsName || null,
+   branch: ebName ? {
+    chinese: ebMapping.chinese || ebName,
+    animal: ebMapping.animal || 'Unknown',
+    element: ebMapping.animal || 'Unknown',
+    color: ebMapping.hex_color || '#808080'
+   } : null,
+   branchName: ebName || null,
+   stemKey: hsKey,
+   branchKey: ebKey,
+   hiddenStems,
+   hiddenQi,
+   tenGod: tenGodLabel,
+   isUnknown: false,
+   stemTransformations: (hsNode?.badges || []).filter(b => b.type === 'transformation').map(b => enrichBadgeWithInteraction(b)),
+   branchTransformations: (ebNode?.badges || []).filter(b => b.type === 'transformation').map(b => enrichBadgeWithInteraction(b)),
+   stemCombinations: (hsNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
+   branchCombinations: (ebNode?.badges || []).filter(b => b.type === 'combination').map(b => enrichBadgeWithInteraction(b)),
+   stemNegatives: (hsNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+   branchNegatives: (ebNode?.badges || []).filter(b => ['clash', 'harm', 'punishment', 'destruction', 'stem_conflict'].includes(b.type)).map(b => enrichBadgeWithInteraction(b)),
+   isTalismanYear: isYear,
+   isTalismanMonth: isMonth,
+   isTalismanDay: isDay,
+   isTalismanHour: isHour
+  }
+ }
+ 
+ // Add talisman pillars if they exist (use ty/tm/td/th node IDs)
+ const tyPillar = createTalismanPillar('Talisman Y 符年', chartData.value.hs_ty, chartData.value.eb_ty, 'hs_ty', 'eb_ty', true, false, false, false)
+ if (tyPillar) talismanPillars.push(tyPillar)
+ 
+ const tmPillar = createTalismanPillar('Talisman M 符月', chartData.value.hs_tm, chartData.value.eb_tm, 'hs_tm', 'eb_tm', false, true, false, false)
+ if (tmPillar) talismanPillars.push(tmPillar)
+ 
+ const tdPillar = createTalismanPillar('Talisman D 符日', chartData.value.hs_td, chartData.value.eb_td, 'hs_td', 'eb_td', false, false, true, false)
+ if (tdPillar) talismanPillars.push(tdPillar)
+ 
+ const thPillar = createTalismanPillar('Talisman H 符時', chartData.value.hs_th, chartData.value.eb_th, 'hs_th', 'eb_th', false, false, false, true)
+ if (thPillar) talismanPillars.push(thPillar)
+ 
+ return talismanPillars
+})
+
+// Natal pillars only (4 columns: hour, day, month, year)
+const natalPillarsOnly = computed(() => {
+ if (!pillars.value) return null
+ 
+ return [
+  pillars.value.hour,
+  pillars.value.day,
+  pillars.value.month,
+  pillars.value.year
+ ]
+})
+
+// Combined ordered pillars (natal + luck + talismans - all need to be here for interaction calculations)
 const pillarsOrdered = computed(() => {
  if (!pillars.value) return null
  
@@ -1974,8 +2566,36 @@ const pillarsOrdered = computed(() => {
  // Use luckPillarsOrdered to get all luck pillars (10Y, annual, monthly, daily, hourly)
  const allLuckPillars = luckPillarsOrdered.value || []
  
- // Combine natal + luck pillars
- return [...basePillars, ...allLuckPillars]
+ // Get talisman pillars
+ const allTalismanPillars = talismanPillarsOrdered.value || []
+ 
+ // Combine natal + luck + talisman pillars (all must be in array for interactions)
+ return [...basePillars, ...allLuckPillars, ...allTalismanPillars]
+})
+
+// Filter natal + luck pillars (exclude talismans for main chart display)
+const natalAndLuckPillars = computed(() => {
+ if (!pillarsOrdered.value) return null
+ return pillarsOrdered.value.filter(p => 
+  !p.isTalismanYear && !p.isTalismanMonth && !p.isTalismanDay && !p.isTalismanHour
+ )
+})
+
+// Talisman display row (4 slots aligned: hour, day, month, year)
+const talismanPillarsDisplay = computed(() => {
+ if (!talismanPillarsOrdered.value) return []
+ 
+ const talismans = talismanPillarsOrdered.value
+ const display = [null, null, null, null] // [hour, day, month, year]
+ 
+ talismans.forEach(t => {
+  if (t.isTalismanHour) display[0] = t
+  else if (t.isTalismanDay) display[1] = t
+  else if (t.isTalismanMonth) display[2] = t
+  else if (t.isTalismanYear) display[3] = t
+ })
+ 
+ return display
 })
 
 // Old manual pillar building logic removed - now using luckPillarsOrdered
@@ -2232,6 +2852,25 @@ async function generateChart() {
    if (analysisTime.value && includeHourlyLuck.value) {
     apiUrl += `&analysis_time=${encodeURIComponent(analysisTime.value)}`
    }
+  }
+  
+  // Add talisman parameters if talismans are enabled (only send defined values)
+  if (showTalismans.value) {
+   // Year talisman
+   if (talismanYearHS.value) apiUrl += `&talisman_year_hs=${talismanYearHS.value}`
+   if (talismanYearEB.value) apiUrl += `&talisman_year_eb=${talismanYearEB.value}`
+   
+   // Month talisman
+   if (talismanMonthHS.value) apiUrl += `&talisman_month_hs=${talismanMonthHS.value}`
+   if (talismanMonthEB.value) apiUrl += `&talisman_month_eb=${talismanMonthEB.value}`
+   
+   // Day talisman
+   if (talismanDayHS.value) apiUrl += `&talisman_day_hs=${talismanDayHS.value}`
+   if (talismanDayEB.value) apiUrl += `&talisman_day_eb=${talismanDayEB.value}`
+   
+   // Hour talisman
+   if (talismanHourHS.value) apiUrl += `&talisman_hour_hs=${talismanHourHS.value}`
+   if (talismanHourEB.value) apiUrl += `&talisman_hour_eb=${talismanHourEB.value}`
   }
   
   console.log('Calling analyze_bazi endpoint:', apiUrl)
@@ -3075,6 +3714,16 @@ function getCombinationTooltip(combination) {
 }
 
 // Negative badge functions - same as transformations, just display the badge character
+// Helper to get Chinese character for stem name (for hidden stems display)
+function getStemChinese(stemName) {
+ const stemToChinese = {
+  'Jia': '甲', 'Yi': '乙', 'Bing': '丙', 'Ding': '丁',
+  'Wu': '戊', 'Ji': '己', 'Geng': '庚', 'Xin': '辛',
+  'Ren': '壬', 'Gui': '癸'
+ }
+ return stemToChinese[stemName] || ''
+}
+
 function getNegativeBadgeSymbol(negative) {
  if (!negative || !negative.badge) return '●'
  
@@ -3098,18 +3747,24 @@ function getNegativeBadgeSymbol(negative) {
   'Metal': '金', 'Water': '水'
  }
  
+ // Map special negative interaction symbols
+ const specialSymbols = {
+  'KE': '剋'  // Stem conflict control/restrain symbol
+ }
+ 
  return stemToChinese[negative.badge] || 
         branchToChinese[negative.badge] || 
         elementToChinese[negative.badge] || 
+        specialSymbols[negative.badge] ||
         negative.badge
 }
 
 function getNegativeBadgeSizeClass(strength) {
  const sizeClasses = {
-  ultra_strong: 'w-8 h-8 text-sm',    // 32px square
-  strong: 'w-7 h-7 text-xs',          // 28px square
-  normal: 'w-6 h-6 text-[10px]',      // 24px square
-  weak: 'w-5 h-5 text-[8px]'          // 20px square
+  ultra_strong: 'w-6 h-6 text-[10px]',      // 24px container, smaller text
+  strong: 'w-5 h-5 text-[8px]',            // 20px container, smaller text
+  normal: 'w-4 h-4 text-[7px]',            // 16px container, smaller text
+  weak: 'w-3 h-3 text-[6px]'               // 12px container, smaller text
  }
  return sizeClasses[strength] || sizeClasses.normal
 }
@@ -3138,12 +3793,16 @@ function getNegativeBadgeStyle(negative) {
   
   // Pure Elements (fallback)
   'Wood': '#c9dcc4', 'Fire': '#f4c0af', 'Earth': '#ead9c2',
-  'Metal': '#d9e0f2', 'Water': '#cdd5ff'
+  'Metal': '#d9e0f2', 'Water': '#cdd5ff',
+  
+  // Special negative interaction symbols
+  'KE': 'transparent'  // Stem conflict - neutral transparent for control/restrain
  }
  
  const baseBgColor = badgeColors[badge] || badgeColors['Earth'] || '#fbbf24'
- const textColor = getLightnessPercent(baseBgColor) > 70 ? '#1f2937' : '#ffffff'
- const borderColor = adjustBrightness(baseBgColor, -20)
+ // Special handling for transparent KE badge - use black text
+ const textColor = badge === 'KE' ? '#000000' : (getLightnessPercent(baseBgColor) > 70 ? '#1f2937' : '#ffffff')
+ const borderColor = badge === 'KE' ? '#000000' : adjustBrightness(baseBgColor, -20)
  
  // Type-based border styling (different visual flair for each type)
  const typeStyles = {
@@ -3166,6 +3825,11 @@ function getNegativeBadgeStyle(negative) {
    borderStyle: 'dotted',
    borderWidth: '3px',
    shape: 'square'
+  },
+  'stem_conflict': {
+   borderStyle: 'solid',
+   borderWidth: '3px',
+   shape: 'square'  // Stem conflict (天干沖)
   }
  }
  
@@ -3223,6 +3887,7 @@ function getNegativeBadgeTooltip(negative) {
   'harm': '害 (Harm)',
   'punishment': '刑 (Punishment)',
   'destruction': '破 (Destruction)',
+  'stem_conflict': '剋 (Stem Conflict)',
   'CLASHES': '沖 (Clash)',
   'HARMS': '害 (Harm)',
   'PUNISHMENTS': '刑 (Punishment)',
