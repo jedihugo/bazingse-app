@@ -101,8 +101,8 @@
       </div>
      </div>
      
-     <!-- Column Headers: Each input aligned with pillar below (9 columns max) -->
-     <div class="flex gap-1 mb-2 overflow-x-auto items-center">
+     <!-- Column Headers: Each input aligned with pillar below -->
+     <div class="flex gap-1 mb-2 overflow-x-auto items-center" style="max-width: calc(4 * 7rem + 3 * 0.25rem + 2 * 7rem + 2 * (0.75rem + 2px));">
       
       <!-- Column 1: Hour (Natal) -->
       <div class="w-28 flex-shrink-0">
@@ -177,32 +177,52 @@
         @change="handleInputChange"
        />
       </div>
-      
-      <!-- Left Partition Divider (before 10Y Luck) -->
-      <div v-if="chartData?.analysis_info?.has_luck_pillar" 
-         class="relative flex-shrink-0 mx-3 self-stretch" 
-         style="width: 2px; min-height: 60px;">
-       <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+     </div>
+     
+     <!-- Time Travel Period Inputs (Gender + Toggles) -->
+     <div v-if="showAnalysisPeriod" class="flex gap-2 mb-6 items-center">
+      <div class="flex-shrink-0">
+       <label class="block text-xs font-semibold text-gray-700 mb-1">Gender</label>
+       <select 
+        v-model="gender" 
+        class="px-2 py-1.5 text-xs border border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        @change="handleInputChange">
+        <option value="male">♂ Male</option>
+        <option value="female">♀ Female</option>
+       </select>
       </div>
-      
-      <!-- Column 5: 10-Year Luck (Label) -->
-      <div v-if="chartData?.analysis_info?.has_luck_pillar" class="w-28 flex-shrink-0">
-       <label class="block text-[10px] font-semibold text-purple-700 mb-1 text-center">運 10Y Luck</label>
-       <div class="px-1 py-1.5 text-xs bg-purple-50 border border-purple-300 text-center">
-        <div class="text-[10px] font-bold text-purple-700 leading-tight">
-         {{ currentLuckPillar?.timing?.start_year || '?' }} - {{ currentLuckPillar?.timing?.end_year || '?' }}
-        </div>
+     </div>
+     
+     <!-- BaZi Chart Display -->
+     <div v-if="natalAndLuckPillars && !isLoading" class="relative">
+      <!-- NATAL CHART (Row 1) -->
+      <div class="relative overflow-x-auto" style="max-width: calc(4 * 7rem + 3 * 0.25rem + 2 * 7rem + 2 * (0.75rem + 2px));">
+       
+       <!-- Heavenly Stems Row -->
+       <div class="flex gap-1 items-center">
+        <!-- Natal Pillars Only (Hour, Day, Month, Year) -->
+        <template v-for="(pillar, index) in natalPillarsOrdered" :key="`natal-stem-${index}`">
+         PLACEHOLDER_KEEP_OLD_CONTENT
+        </template>
        </div>
       </div>
-      
-      <!-- Right Partition Divider (after 10Y Luck) -->
-      <div v-if="chartData?.analysis_info?.has_luck_pillar" 
-         class="relative flex-shrink-0 mx-3 self-stretch" 
-         style="width: 2px; min-height: 60px;">
-       <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
-      </div>
-      
-      <!-- Column 6: Annual (Analysis Year) - Always show when time travel mode is ON -->
+     </div>
+    </div>
+    
+    <!-- Loading State -->
+    <div v-if="isLoading" class="text-center py-4">
+     <div class="inline-flex items-center gap-2">
+      <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span class="text-sm text-gray-600">Calculating...</span>
+     </div>
+    </div>
+    
+    PLACEHOLDER_TO_DELETE
+    
+      <!-- LUCK PILLARS Controls + Section -->
       <div v-if="showAnalysisPeriod" class="w-28 flex-shrink-0">
        <div class="flex items-center justify-center gap-1 mb-1">
         <input 
@@ -400,20 +420,13 @@
 
      <!-- BaZi Chart Display -->
      <div v-if="natalAndLuckPillars && !isLoading" class="relative">
-      <!-- Natal + Luck Pillars (Horizontal Layout) -->
-      <div class="relative overflow-x-auto" :class="totalPillarCount > 4 ? 'max-w-full' : 'max-w-lg'">
+      <!-- NATAL CHART (Row 1) -->
+      <div class="relative overflow-x-auto" style="max-width: calc(4 * 7rem + 3 * 0.25rem + 2 * 7rem + 2 * (0.75rem + 2px));">
        
        <!-- Heavenly Stems Row -->
        <div class="flex gap-1 items-center">
-        <!-- Natal + Luck Pillars -->
-        <template v-for="(pillar, index) in natalAndLuckPillars" :key="`stem-${index}`">
-         <!-- Left Partition: Before 10-year luck pillar (position 4) -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="relative flex-shrink-0 mx-3 self-stretch"
-            style="width: 2px;">
-          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
-         </div>
-         
+        <!-- Natal Pillars Only (Hour, Day, Month, Year) -->
+        <template v-for="(pillar, index) in natalPillarsOrdered" :key="`natal-stem-${index}`">
          <!-- Pillar Content -->
         <div class="relative w-28 flex-shrink-0">
          <div 
@@ -424,12 +437,6 @@
            getNodeHighlightClass(`stem-${index}`),
            highlightedNodes.includes(`stem-${index}`) ? 'z-50' : '',
            index === 1 ? 'border-2 border-blue-500' : '',
-           pillar.is10YearLuck ? 'border-2 border-purple-500' : '',
-           pillar.isAnnualLuck && !includeAnnualLuck ? 'opacity-40 grayscale' : '',
-           pillar.isMonthlyLuck && !includeMonthlyLuck ? 'opacity-40 grayscale' : '',
-           pillar.isDailyLuck && !includeDailyLuck ? 'opacity-40 grayscale' : '',
-           pillar.isHourlyLuck && !includeHourlyLuck ? 'opacity-40 grayscale' : '',
-           (pillar.isTalismanYear || pillar.isTalismanMonth || pillar.isTalismanDay || pillar.isTalismanHour) ? 'border-2 border-teal-500' : '',
            pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
           ]"
           :style="pillar.isUnknown ? {} : (pillar.stem ? getNodeBgColor(pillar.stem.element, pillar.stem.color) : {})"
@@ -516,21 +523,14 @@
           
           
           <!-- Horizontal WuXing Flow to Next Stem (only in post/transformed view) -->
-          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.stem && natalAndLuckPillars[index + 1]?.stem && index < natalAndLuckPillars.length - 1 && !natalAndLuckPillars[index + 1].isUnknown && getWuXingRelation(pillar.stem.element, natalAndLuckPillars[index + 1].stem.element)"
+          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.stem && natalPillarsOrdered[index + 1]?.stem && index < natalPillarsOrdered.length - 1 && !natalPillarsOrdered[index + 1].isUnknown && getWuXingRelation(pillar.stem.element, natalPillarsOrdered[index + 1].stem.element)"
              class="absolute -right-3 top-1/2 -translate-y-1/2 text-lg font-bold z-30"
-             :class="getWuXingRelationClass(pillar.stem.element, natalAndLuckPillars[index + 1].stem.element)"
-             :title="`${pillar.stem.element} to ${natalAndLuckPillars[index + 1].stem.element}`">
-           {{ getWuXingRelation(pillar.stem.element, natalAndLuckPillars[index + 1].stem.element) }}
+             :class="getWuXingRelationClass(pillar.stem.element, natalPillarsOrdered[index + 1].stem.element)"
+             :title="`${pillar.stem.element} to ${natalPillarsOrdered[index + 1].stem.element}`">
+           {{ getWuXingRelation(pillar.stem.element, natalPillarsOrdered[index + 1].stem.element) }}
           </div>
          </div>
         </div>
-        
-         <!-- Right Partition: After 10-year luck pillar (position 4 only) -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="relative flex-shrink-0 mx-3 self-stretch"
-            style="width: 2px;">
-          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
-         </div>
         </template>
        </div>
        
@@ -549,23 +549,12 @@
           {{ getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element) }}
          </div>
         </div>
-        
-         <!-- Right Partition spacer: After 10-year luck pillar -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="flex-shrink-0 mx-3" style="width: 2px;"></div>
         </template>
        </div>
        
        <!-- Earthly Branches Row -->
        <div class="flex gap-1 overflow-visible items-stretch">
-        <template v-for="(pillar, index) in natalAndLuckPillars" :key="`branch-${index}`">
-         <!-- Left Partition: Before 10-year luck pillar -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="relative flex-shrink-0 mx-3 self-stretch"
-            style="width: 2px;">
-          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
-         </div>
-         
+        <template v-for="(pillar, index) in natalPillarsOrdered" :key="`natal-branch-${index}`">
          <!-- Pillar Content -->
         <div class="relative w-28 flex-shrink-0">
          <div 
@@ -576,12 +565,6 @@
            getNodeHighlightClass(`branch-${index}`),
            highlightedNodes.includes(`branch-${index}`) ? 'z-50' : '',
            index === 1 ? 'border-2 border-blue-500' : '',
-           pillar.is10YearLuck ? 'border-2 border-purple-500' : '',
-           pillar.isAnnualLuck && !includeAnnualLuck ? 'opacity-40 grayscale' : '',
-           pillar.isMonthlyLuck && !includeMonthlyLuck ? 'opacity-40 grayscale' : '',
-           pillar.isDailyLuck && !includeDailyLuck ? 'opacity-40 grayscale' : '',
-           pillar.isHourlyLuck && !includeHourlyLuck ? 'opacity-40 grayscale' : '',
-           (pillar.isTalismanYear || pillar.isTalismanMonth || pillar.isTalismanDay || pillar.isTalismanHour) ? 'border-2 border-teal-500' : '',
            pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
           ]"
           :style="pillar.isUnknown ? { aspectRatio: '1/1.2' } : {
@@ -683,24 +666,415 @@
           
           
           <!-- Horizontal WuXing Flow to Next Branch (only in post/transformed view) -->
-          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.branch && natalAndLuckPillars[index + 1]?.branch && index < natalAndLuckPillars.length - 1 && !natalAndLuckPillars[index + 1].isUnknown && getWuXingRelation(pillar.branch.element, natalAndLuckPillars[index + 1].branch.element)"
+          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.branch && natalPillarsOrdered[index + 1]?.branch && index < natalPillarsOrdered.length - 1 && !natalPillarsOrdered[index + 1].isUnknown && getWuXingRelation(pillar.branch.element, natalPillarsOrdered[index + 1].branch.element)"
              class="absolute -right-3 top-1/3 -translate-y-1/2 text-lg font-bold z-50"
-             :class="getWuXingRelationClass(pillar.branch.element, natalAndLuckPillars[index + 1].branch.element)"
-             :title="`${pillar.branch.element} to ${natalAndLuckPillars[index + 1].branch.element}`">
-           {{ getWuXingRelation(pillar.branch.element, natalAndLuckPillars[index + 1].branch.element) }}
+             :class="getWuXingRelationClass(pillar.branch.element, natalPillarsOrdered[index + 1].branch.element)"
+             :title="`${pillar.branch.element} to ${natalPillarsOrdered[index + 1].branch.element}`">
+           {{ getWuXingRelation(pillar.branch.element, natalPillarsOrdered[index + 1].branch.element) }}
           </div>
          </div>
         </div>
-        
-         <!-- Right Partition: After 10-year luck pillar -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="relative flex-shrink-0 mx-3 self-stretch"
-            style="width: 2px;">
-          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
-         </div>
         </template>
        </div>
        
+      </div>
+      
+      <!-- TIME TRAVEL CONTROLS (Above Luck Pillars) -->
+      <div v-if="showAnalysisPeriod && luckPillarsDisplay.some(p => p !== null)" class="mt-8 mb-4">
+       <div class="flex gap-3 items-center flex-wrap">
+        <!-- 10Y Luck Info (Read-only display) -->
+        <div v-if="chartData?.analysis_info?.has_luck_pillar" class="flex items-center gap-2 px-3 py-2 bg-purple-50 border border-purple-300 rounded">
+         <input type="checkbox" checked disabled class="w-3.5 h-3.5" style="accent-color: #a855f7;" />
+         <span class="text-xs font-semibold text-purple-700">運 10Y Luck</span>
+         <span class="text-xs font-bold text-purple-700">
+          {{ currentLuckPillar?.timing?.start_year || '?' }} - {{ currentLuckPillar?.timing?.end_year || '?' }}
+         </span>
+        </div>
+        
+        <!-- Annual Luck -->
+        <div v-if="showAnalysisPeriod" class="flex items-center gap-2 px-3 py-2 border rounded"
+           :class="includeAnnualLuck ? 'bg-amber-50 border-amber-400' : 'bg-gray-50 border-gray-300'">
+         <input 
+          type="checkbox" 
+          v-model="includeAnnualLuck" 
+          class="w-3.5 h-3.5 cursor-pointer"
+          style="accent-color: #C9B037;"
+          @change="handleInputChange"
+         />
+         <span class="text-xs font-semibold" :class="includeAnnualLuck ? 'text-amber-800' : 'text-gray-500'">年運 Annual</span>
+         <input
+          v-model.number="analysisYear"
+          type="number"
+          min="1900"
+          max="2100"
+          placeholder="YYYY"
+          class="w-20 px-2 py-1 text-xs border rounded text-center"
+          :class="includeAnnualLuck ? 'border-amber-400 bg-white' : 'border-gray-300 bg-gray-100'"
+          :disabled="!includeAnnualLuck"
+          @change="handleInputChange"
+         />
+        </div>
+        
+        <!-- Monthly Luck -->
+        <div v-if="showAnalysisPeriod && analysisYear && includeAnnualLuck" class="flex items-center gap-2 px-3 py-2 border rounded"
+           :class="includeMonthlyLuck ? 'bg-amber-50 border-amber-400' : 'bg-gray-50 border-gray-300'">
+         <input 
+          type="checkbox" 
+          v-model="includeMonthlyLuck" 
+          class="w-3.5 h-3.5 cursor-pointer"
+          style="accent-color: #C9B037;"
+          @change="handleInputChange"
+         />
+         <span class="text-xs font-semibold" :class="includeMonthlyLuck ? 'text-amber-800' : 'text-gray-500'">月運 Monthly</span>
+         <input
+          v-model.number="analysisMonth"
+          type="number"
+          min="1"
+          max="12"
+          placeholder="MM"
+          class="w-16 px-2 py-1 text-xs border rounded text-center"
+          :class="includeMonthlyLuck ? 'border-amber-400 bg-white' : 'border-gray-300 bg-gray-100'"
+          :disabled="!includeMonthlyLuck"
+          @change="handleInputChange"
+         />
+        </div>
+        
+        <!-- Daily Luck -->
+        <div v-if="showAnalysisPeriod && analysisMonth && includeMonthlyLuck" class="flex items-center gap-2 px-3 py-2 border rounded"
+           :class="includeDailyLuck ? 'bg-amber-50 border-amber-400' : 'bg-gray-50 border-gray-300'">
+         <input 
+          type="checkbox" 
+          v-model="includeDailyLuck" 
+          class="w-3.5 h-3.5 cursor-pointer"
+          style="accent-color: #C9B037;"
+          @change="handleInputChange"
+         />
+         <span class="text-xs font-semibold" :class="includeDailyLuck ? 'text-amber-800' : 'text-gray-500'">日運 Daily</span>
+         <input
+          v-model.number="analysisDay"
+          type="number"
+          min="1"
+          max="31"
+          placeholder="DD"
+          class="w-16 px-2 py-1 text-xs border rounded text-center"
+          :class="includeDailyLuck ? 'border-amber-400 bg-white' : 'border-gray-300 bg-gray-100'"
+          :disabled="!includeDailyLuck"
+          @change="handleInputChange"
+         />
+        </div>
+        
+        <!-- Hourly Luck -->
+        <div v-if="showAnalysisPeriod && analysisDay && includeDailyLuck" class="flex items-center gap-2 px-3 py-2 border rounded"
+           :class="includeHourlyLuck ? 'bg-amber-50 border-amber-400' : 'bg-gray-50 border-gray-300'">
+         <input 
+          type="checkbox" 
+          v-model="includeHourlyLuck" 
+          class="w-3.5 h-3.5 cursor-pointer"
+          style="accent-color: #C9B037;"
+          @change="handleInputChange"
+         />
+         <span class="text-xs font-semibold" :class="includeHourlyLuck ? 'text-amber-800' : 'text-gray-500'">時運 Hourly</span>
+         <input
+          v-model="analysisTime"
+          type="time"
+          placeholder="HH:MM"
+          class="w-20 px-2 py-1 text-xs border rounded text-center"
+          :class="includeHourlyLuck ? 'border-amber-400 bg-white' : 'border-gray-300 bg-gray-100'"
+          :disabled="!includeHourlyLuck"
+          @change="handleInputChange"
+         />
+        </div>
+       </div>
+      </div>
+      
+      <!-- LUCK PILLARS (Row 2 - below natal) -->
+      <div v-if="luckPillarsDisplay.some(p => p !== null)" class="relative overflow-x-auto" style="max-width: calc(4 * 7rem + 3 * 0.25rem + 2 * 7rem + 2 * (0.75rem + 2px));">
+       <div class="mb-2 text-sm font-semibold text-purple-700">運 Luck Pillars</div>
+       
+       <!-- Luck Heavenly Stems Row -->
+       <div class="flex gap-1 items-center">
+        <template v-for="(pillar, index) in luckPillarsDisplay" :key="`luck-stem-${index}`">
+         <!-- Empty slot for alignment -->
+         <div v-if="!pillar" class="w-28 flex-shrink-0"></div>
+         
+         <!-- Luck Pillar with optional divider -->
+         <template v-else>
+          <!-- Left Purple Divider (before 10Y Luck only - index 4) -->
+          <div v-if="index === 4" 
+             class="relative flex-shrink-0 mx-3 self-stretch"
+             style="width: 2px;">
+           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+          </div>
+         
+          <!-- Luck Pillar Stem -->
+          <div class="relative w-28 flex-shrink-0">
+          <div 
+           :id="`stem-${getLuckPosition(index)}`"
+           class="aspect-square p-3 transition-all duration-300 relative flex flex-col items-center justify-center"
+           :class="[
+            hoveredNode === `stem-${getLuckPosition(index)}` ? 'shadow-lg scale-105' : 'border border-gray-300',
+            getNodeHighlightClass(`stem-${getLuckPosition(index)}`),
+            highlightedNodes.includes(`stem-${getLuckPosition(index)}`) ? 'z-50' : '',
+            pillar.isLuckPillar ? 'border-2 border-purple-500' : '',
+            pillar.isAnnualLuck ? 'border-2 border-orange-500' : '',
+            pillar.isMonthlyLuck ? 'border-2 border-green-500' : '',
+            pillar.isDailyLuck ? 'border-2 border-indigo-500' : '',
+            pillar.isHourlyLuck ? 'border-2 border-pink-500' : '',
+            pillar.isAnnualLuck && !includeAnnualLuck ? 'opacity-40 grayscale' : '',
+            pillar.isMonthlyLuck && !includeMonthlyLuck ? 'opacity-40 grayscale' : '',
+            pillar.isDailyLuck && !includeDailyLuck ? 'opacity-40 grayscale' : '',
+            pillar.isHourlyLuck && !includeHourlyLuck ? 'opacity-40 grayscale' : '',
+            pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
+           ]"
+           :style="pillar.isUnknown ? {} : (pillar.stem ? getNodeBgColor(pillar.stem.element, pillar.stem.color) : {})"
+          >
+           <!-- Negative Badges -->
+           <div v-if="pillar.stemNegatives && pillar.stemNegatives.length > 0" 
+              class="absolute top-1 left-1 gap-0.5 z-20"
+              :class="pillar.stemNegatives.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-start'">
+            <div v-for="(neg, idx) in pillar.stemNegatives" 
+               :key="`luck-stem-neg-${index}-${idx}`"
+               class="flex items-center justify-center font-bold transition-transform cursor-help"
+               :class="[
+                getNegativeBadgeSizeClass(neg.strength),
+                isBadgeHighlighted(neg) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getNegativeBadgeStyle(neg)"
+               :title="getNegativeBadgeTooltip(neg)"
+               @mouseenter="handleBadgeHover(neg)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getNegativeBadgeSymbol(neg) }}</span>
+            </div>
+           </div>
+           
+           <!-- Transformation Badges -->
+           <div v-if="pillar.stemTransformations && pillar.stemTransformations.length > 0" 
+              class="absolute top-1 right-1 gap-0.5"
+              :class="pillar.stemTransformations.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-end'">
+            <div v-for="(trans, idx) in pillar.stemTransformations" 
+               :key="`luck-stem-trans-${index}-${idx}`"
+               class="flex items-center justify-center font-bold rounded-full shadow-md transition-transform cursor-help"
+               :class="[
+                getTransformationSizeClass(trans.strength),
+                isBadgeHighlighted(trans) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getTransformationBadgeStyles(trans)"
+               :title="getTransformationTooltip(trans)"
+               @mouseenter="handleBadgeHover(trans)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getTransformBadgeDisplay(trans.badge) }}</span>
+            </div>
+           </div>
+           
+           <!-- Content -->
+           <div v-if="!pillar.isUnknown && pillar.stemName" class="text-xs text-gray-700 mb-1">{{ pillar.stemName }}</div>
+           <div v-if="pillar.stem" class="text-2xl font-bold text-black">{{ pillar.stem.chinese }}</div>
+           <div v-else class="text-xl text-gray-400">-</div>
+           <div v-if="!pillar.isUnknown && pillar.stem" class="text-xs text-gray-700">
+            {{ pillar.stem.element.replace('Yang ', '').replace('Yin ', '') }} {{ pillar.stem.element.includes('Yang') ? '+' : '-' }}
+           </div>
+           <div v-if="!pillar.isUnknown" class="text-xs mt-1 text-gray-900">{{ pillar.tenGod || '' }}</div>
+           
+           <!-- Combination Badges -->
+           <div v-if="pillar.stemCombinations && pillar.stemCombinations.length > 0" 
+              class="absolute bottom-1 right-1 gap-0.5 flex items-start content-start"
+              :class="pillar.stemCombinations.length >= 3 ? 'flex-wrap-reverse flex-row justify-end' : 'flex-row items-end'"
+              :style="pillar.stemCombinations.length >= 3 ? 'max-width: 40px;' : ''">
+            <div v-for="(comb, idx) in pillar.stemCombinations" 
+               :key="`luck-stem-comb-${index}-${idx}`"
+               class="flex items-center justify-center font-bold rounded-full transition-transform cursor-help"
+               :class="[
+                getCombinationBadgeSizeClass(comb.strength),
+                isBadgeHighlighted(comb) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getCombinationBadgeStyle(comb)"
+               :title="getCombinationTooltip(comb)"
+               @mouseenter="handleBadgeHover(comb)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getTransformBadgeDisplay(comb.badge) }}</span>
+            </div>
+           </div>
+           
+           <!-- Horizontal WuXing Flow -->
+           <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.stem && luckPillarsDisplay[index + 1]?.stem && index < luckPillarsDisplay.length - 1 && !luckPillarsDisplay[index + 1].isUnknown && getWuXingRelation(pillar.stem.element, luckPillarsDisplay[index + 1].stem.element)"
+              class="absolute -right-3 top-1/2 -translate-y-1/2 text-lg font-bold z-30"
+              :class="getWuXingRelationClass(pillar.stem.element, luckPillarsDisplay[index + 1].stem.element)"
+              :title="`${pillar.stem.element} to ${luckPillarsDisplay[index + 1].stem.element}`">
+            {{ getWuXingRelation(pillar.stem.element, luckPillarsDisplay[index + 1].stem.element) }}
+           </div>
+          </div>
+         </div>
+          
+          <!-- Right Purple Divider (after 10Y Luck only - index 4) -->
+          <div v-if="index === 4" 
+             class="relative flex-shrink-0 mx-3 self-stretch"
+             style="width: 2px;">
+           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+          </div>
+         </template>
+        </template>
+       </div>
+       
+       <!-- Vertical Flow Indicators -->
+       <div class="flex gap-1">
+        <template v-for="(pillar, index) in luckPillarsDisplay" :key="`luck-flow-${index}`">
+         <div v-if="!pillar" class="w-28 flex-shrink-0"></div>
+         <template v-else>
+          <!-- Left divider spacer (before 10Y Luck) -->
+          <div v-if="index === 4" class="flex-shrink-0 mx-3" style="width: 2px;"></div>
+          
+          <div class="w-28 flex-shrink-0 flex justify-center py-1">
+           <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.stem && pillar.branch && getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element)"
+              class="text-lg font-bold"
+              :class="getVerticalWuXingClass(pillar.stem.element, pillar.branch.element)"
+              :title="`${pillar.stem.element} to ${pillar.branch.element}`">
+            {{ getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element) }}
+           </div>
+          </div>
+          
+          <!-- Right divider spacer (after 10Y Luck) -->
+          <div v-if="index === 4" class="flex-shrink-0 mx-3" style="width: 2px;"></div>
+         </template>
+        </template>
+       </div>
+       
+       <!-- Luck Earthly Branches Row -->
+       <div class="flex gap-1 overflow-visible items-stretch">
+        <template v-for="(pillar, index) in luckPillarsDisplay" :key="`luck-branch-${index}`">
+         <!-- Empty slot for alignment -->
+         <div v-if="!pillar" class="w-28 flex-shrink-0"></div>
+         
+         <!-- Luck Pillar Branch with optional dividers -->
+         <template v-else>
+          <!-- Left Purple Divider (before 10Y Luck only - index 4) -->
+          <div v-if="index === 4" 
+             class="relative flex-shrink-0 mx-3 self-stretch"
+             style="width: 2px;">
+           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+          </div>
+         
+          <!-- Luck Pillar Branch -->
+          <div class="relative w-28 flex-shrink-0">
+          <div 
+           :id="`branch-${getLuckPosition(index)}`"
+           class="pb-0 pt-2 px-3 transition-all duration-300 relative flex flex-col items-center justify-start"
+           :class="[
+            hoveredNode === `branch-${getLuckPosition(index)}` ? 'shadow-lg scale-105' : 'border border-gray-300',
+            getNodeHighlightClass(`branch-${getLuckPosition(index)}`),
+            highlightedNodes.includes(`branch-${getLuckPosition(index)}`) ? 'z-50' : '',
+            pillar.isLuckPillar ? 'border-2 border-purple-500' : '',
+            pillar.isAnnualLuck ? 'border-2 border-orange-500' : '',
+            pillar.isMonthlyLuck ? 'border-2 border-green-500' : '',
+            pillar.isDailyLuck ? 'border-2 border-indigo-500' : '',
+            pillar.isHourlyLuck ? 'border-2 border-pink-500' : '',
+            pillar.isAnnualLuck && !includeAnnualLuck ? 'opacity-40 grayscale' : '',
+            pillar.isMonthlyLuck && !includeMonthlyLuck ? 'opacity-40 grayscale' : '',
+            pillar.isDailyLuck && !includeDailyLuck ? 'opacity-40 grayscale' : '',
+            pillar.isHourlyLuck && !includeHourlyLuck ? 'opacity-40 grayscale' : '',
+            pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
+           ]"
+           :style="pillar.isUnknown ? { aspectRatio: '1/1.2' } : {
+            ...(pillar.branch ? getNodeBgColor(pillar.branch.element, pillar.branch.color) : {}),
+            aspectRatio: '1/1.2'
+           }"
+          >
+           <!-- Negative Badges -->
+           <div v-if="pillar.branchNegatives && pillar.branchNegatives.length > 0" 
+              class="absolute top-1 left-1 gap-0.5 z-20"
+              :class="pillar.branchNegatives.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-start'">
+            <div v-for="(neg, idx) in pillar.branchNegatives" 
+               :key="`luck-branch-neg-${index}-${idx}`"
+               class="flex items-center justify-center font-bold transition-transform cursor-help"
+               :class="[
+                getNegativeBadgeSizeClass(neg.strength),
+                isBadgeHighlighted(neg) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getNegativeBadgeStyle(neg)"
+               :title="getNegativeBadgeTooltip(neg)"
+               @mouseenter="handleBadgeHover(neg)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getNegativeBadgeSymbol(neg) }}</span>
+            </div>
+           </div>
+           
+           <!-- Transformation Badges -->
+           <div v-if="pillar.branchTransformations && pillar.branchTransformations.length > 0" 
+              class="absolute top-1 right-1 gap-0.5"
+              :class="pillar.branchTransformations.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-end'">
+            <div v-for="(trans, idx) in pillar.branchTransformations" 
+               :key="`luck-branch-trans-${index}-${idx}`"
+               class="flex items-center justify-center font-bold rounded-full shadow-md transition-transform cursor-help"
+               :class="[
+                getTransformationSizeClass(trans.strength),
+                isBadgeHighlighted(trans) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getTransformationBadgeStyles(trans)"
+               :title="getTransformationTooltip(trans)"
+               @mouseenter="handleBadgeHover(trans)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getTransformBadgeDisplay(trans.badge) }}</span>
+            </div>
+           </div>
+           
+           <!-- Content -->
+           <div v-if="!pillar.isUnknown && pillar.branchName" class="text-xs text-gray-700 mb-1">{{ pillar.branchName }}</div>
+           <div v-if="pillar.branch" class="text-2xl font-bold text-black">{{ pillar.branch.chinese }}</div>
+           <div v-else class="text-xl text-gray-400">-</div>
+           <div v-if="!pillar.isUnknown && pillar.branch && pillar.branch.animal" class="text-xs text-gray-700 mt-1">{{ pillar.branch.animal }}</div>
+           <div v-if="!pillar.isUnknown && pillar.label" class="text-[10px] text-purple-700 font-semibold mt-1">{{ pillar.label }}</div>
+           
+           <!-- Hidden Stems (if any) -->
+           <div v-if="!pillar.isUnknown && pillar.hiddenStems && Object.keys(pillar.hiddenStems).length > 0" 
+              class="mt-2 pt-2 border-t border-gray-200 w-full">
+            <div class="text-[8px] text-gray-500 mb-1">Hidden</div>
+            <div class="flex flex-wrap gap-1 justify-center">
+             <div v-for="(tenGod, stemName) in pillar.hiddenStems" 
+                :key="`luck-hidden-${index}-${stemName}`"
+                class="text-[8px] px-1 py-0.5 rounded bg-gray-100 text-gray-700">
+              {{ stemName }}<span v-if="tenGod" class="text-gray-500 ml-0.5">{{ tenGod }}</span>
+             </div>
+            </div>
+           </div>
+           
+           <!-- Combination Badges -->
+           <div v-if="pillar.branchCombinations && pillar.branchCombinations.length > 0" 
+              class="absolute bottom-1 right-1 gap-0.5 flex items-start content-start"
+              :class="pillar.branchCombinations.length >= 3 ? 'flex-wrap-reverse flex-row justify-end' : 'flex-row items-end'"
+              :style="pillar.branchCombinations.length >= 3 ? 'max-width: 40px;' : ''">
+            <div v-for="(comb, idx) in pillar.branchCombinations" 
+               :key="`luck-branch-comb-${index}-${idx}`"
+               class="flex items-center justify-center font-bold rounded-full transition-transform cursor-help"
+               :class="[
+                getCombinationBadgeSizeClass(comb.strength),
+                isBadgeHighlighted(comb) ? 'scale-125 shadow-lg' : 'hover:scale-110'
+               ]"
+               :style="getCombinationBadgeStyle(comb)"
+               :title="getCombinationTooltip(comb)"
+               @mouseenter="handleBadgeHover(comb)"
+               @mouseleave="clearHighlight()">
+             <span class="leading-none">{{ getTransformBadgeDisplay(comb.badge) }}</span>
+            </div>
+           </div>
+           
+           <!-- Horizontal WuXing Flow -->
+           <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.branch && luckPillarsDisplay[index + 1]?.branch && index < luckPillarsDisplay.length - 1 && !luckPillarsDisplay[index + 1].isUnknown && getWuXingRelation(pillar.branch.element, luckPillarsDisplay[index + 1].branch.element)"
+              class="absolute -right-3 top-1/3 -translate-y-1/2 text-lg font-bold z-50"
+              :class="getWuXingRelationClass(pillar.branch.element, luckPillarsDisplay[index + 1].branch.element)"
+              :title="`${pillar.branch.element} to ${luckPillarsDisplay[index + 1].branch.element}`">
+            {{ getWuXingRelation(pillar.branch.element, luckPillarsDisplay[index + 1].branch.element) }}
+           </div>
+          </div>
+         </div>
+          
+          <!-- Right Purple Divider (after 10Y Luck only - index 4) -->
+          <div v-if="index === 4" 
+             class="relative flex-shrink-0 mx-3 self-stretch"
+             style="width: 2px;">
+           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+          </div>
+         </template>
+        </template>
+       </div>
       </div>
       
       <!-- Talisman Input Section (符) - Input controls as header -->
@@ -1509,6 +1883,14 @@ function isValidJiaziPair(hs, eb) {
   
   // Check if the combination exists in JIAZI_60
   return JIAZI_60.some(pair => pair.stem === hs && pair.branch === eb)
+}
+
+// Helper: Map luck pillar display index to backend position for node IDs
+// Display: [0=HourLuck, 1=DayLuck, 2=MonthLuck, 3=AnnualLuck, 4=10YLuck]
+// Backend: [8=HourLuck, 7=DayLuck, 6=MonthLuck, 5=AnnualLuck, 4=10YLuck]
+function getLuckPosition(displayIndex) {
+ const positions = [8, 7, 6, 5, 4]
+ return positions[displayIndex] ?? displayIndex
 }
 
 // Computed: Check if any talisman pair is invalid
@@ -2794,6 +3176,25 @@ const talismanPillarsDisplay = computed(() => {
  return display
 })
 
+// Luck pillars display grid (5 slots: hour, day, month, annual, 10Y)
+// Aligned below natal pillars for vertical reading
+const luckPillarsDisplay = computed(() => {
+ if (!luckPillarsOrdered.value) return []
+ 
+ const luck = luckPillarsOrdered.value
+ const display = [null, null, null, null, null] // [hour_luck, day_luck, month_luck, annual_luck, 10y_luck]
+ 
+ luck.forEach(lp => {
+  if (lp.isHourlyLuck) display[0] = lp
+  else if (lp.isDailyLuck) display[1] = lp
+  else if (lp.isMonthlyLuck) display[2] = lp
+  else if (lp.isAnnualLuck) display[3] = lp
+  else if (lp.isLuckPillar) display[4] = lp  // 10-year luck
+ })
+ 
+ return display
+})
+
 // Old manual pillar building logic removed - now using luckPillarsOrdered
 // (Simplified from 150+ lines to just using luckPillarsOrdered above)
 
@@ -3050,7 +3451,8 @@ async function generateChart() {
  isLoading.value = true
  try {
   // Build API URL with analyze_bazi endpoint (underscore, not hyphen)
-  let apiUrl = `/api/bazi/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(timeParam)}&gender=${gender.value}`
+  // Call via Vite proxy to avoid CORS issues
+  let apiUrl = `/api/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(timeParam)}&gender=${gender.value}`
   
   // Only add analysis parameters if time travel mode is enabled (🔮 toggle is ON)
   if (showAnalysisPeriod.value) {
@@ -3185,7 +3587,7 @@ async function generateChart() {
   console.error('Error details:', {
    message: error.message,
    stack: error.stack,
-   apiUrl: `/api/bazi/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(birthTime.value || 'unknown')}&gender=${gender.value}`
+   apiUrl: `/api/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(birthTime.value || 'unknown')}&gender=${gender.value}`
   })
   if (typeof window !== 'undefined') {
    alert(`Failed to generate chart: ${error.message || 'Unknown error'}. Check console for details.`)
@@ -4740,18 +5142,3 @@ function isInteractionHighlighted(interaction) {
  return false
 }
 </script>
-
-<style scoped>
-/* Hide the clock icon in time input */
-.hour-input-no-icon::-webkit-calendar-picker-indicator {
- display: none;
-}
-.hour-input-no-icon::-webkit-inner-spin-button,
-.hour-input-no-icon::-webkit-clear-button {
- display: none;
-}
-/* For Firefox */
-.hour-input-no-icon {
- -moz-appearance: textfield;
-}
-</style>
