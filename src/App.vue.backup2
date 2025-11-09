@@ -2794,6 +2794,25 @@ const talismanPillarsDisplay = computed(() => {
  return display
 })
 
+// Luck pillars display grid (5 slots: hour, day, month, annual, 10Y)
+// Aligned below natal pillars for vertical reading
+const luckPillarsDisplay = computed(() => {
+ if (!luckPillarsOrdered.value) return []
+ 
+ const luck = luckPillarsOrdered.value
+ const display = [null, null, null, null, null] // [hour_luck, day_luck, month_luck, annual_luck, 10y_luck]
+ 
+ luck.forEach(lp => {
+  if (lp.isHourlyLuck) display[0] = lp
+  else if (lp.isDailyLuck) display[1] = lp
+  else if (lp.isMonthlyLuck) display[2] = lp
+  else if (lp.isAnnualLuck) display[3] = lp
+  else if (lp.isLuckPillar) display[4] = lp  // 10-year luck
+ })
+ 
+ return display
+})
+
 // Old manual pillar building logic removed - now using luckPillarsOrdered
 // (Simplified from 150+ lines to just using luckPillarsOrdered above)
 
@@ -3050,7 +3069,8 @@ async function generateChart() {
  isLoading.value = true
  try {
   // Build API URL with analyze_bazi endpoint (underscore, not hyphen)
-  let apiUrl = `/api/bazi/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(timeParam)}&gender=${gender.value}`
+  // Call via Vite proxy to avoid CORS issues
+  let apiUrl = `/api/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(timeParam)}&gender=${gender.value}`
   
   // Only add analysis parameters if time travel mode is enabled (🔮 toggle is ON)
   if (showAnalysisPeriod.value) {
@@ -3185,7 +3205,7 @@ async function generateChart() {
   console.error('Error details:', {
    message: error.message,
    stack: error.stack,
-   apiUrl: `/api/bazi/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(birthTime.value || 'unknown')}&gender=${gender.value}`
+   apiUrl: `/api/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(birthTime.value || 'unknown')}&gender=${gender.value}`
   })
   if (typeof window !== 'undefined') {
    alert(`Failed to generate chart: ${error.message || 'Unknown error'}. Check console for details.`)
@@ -4740,18 +4760,3 @@ function isInteractionHighlighted(interaction) {
  return false
 }
 </script>
-
-<style scoped>
-/* Hide the clock icon in time input */
-.hour-input-no-icon::-webkit-calendar-picker-indicator {
- display: none;
-}
-.hour-input-no-icon::-webkit-inner-spin-button,
-.hour-input-no-icon::-webkit-clear-button {
- display: none;
-}
-/* For Firefox */
-.hour-input-no-icon {
- -moz-appearance: textfield;
-}
-</style>

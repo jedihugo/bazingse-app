@@ -10,7 +10,7 @@
      class="w-12 h-12 object-contain"
     />
     <div>
-     <h1 class="text-2xl font-bold text-gray-800">
+     <h1 class="text-xl font-bold text-gray-800">
       BaZingSe
      </h1>
     </div>
@@ -18,9 +18,9 @@
   </header>
 
   <!-- Main Content -->
-  <main class="mx-auto px-4 py-8">
+  <main class="mx-auto px-4 py-8 pb-64">
    <!-- Main Container -->
-   <div class="max-w-7xl mx-auto">
+   <div class="mx-auto" style="max-width: 800px;">
     <!-- BaZi Chart Section -->
     <div class="w-full">
      
@@ -64,7 +64,7 @@
           v-model="gender"
           value="male"
           class="w-3 h-3 text-blue-600 focus:ring-blue-500"
-          @change="handleInputChange"
+          @change="triggerChartUpdate"
          />
          <span class="text-sm">♂</span>
         </label>
@@ -74,7 +74,7 @@
           v-model="gender"
           value="female"
           class="w-3 h-3 text-pink-600 focus:ring-pink-500"
-          @change="handleInputChange"
+          @change="triggerChartUpdate"
          />
          <span class="text-sm">♀</span>
         </label>
@@ -84,21 +84,6 @@
       <!-- Spacers for Month and Year columns -->
       <div class="w-28 flex-shrink-0"></div>
       <div class="w-28 flex-shrink-0"></div>
-      
-      <!-- Time Travel checkbox (always visible) -->
-      <div class="w-28 flex-shrink-0">
-       <div class="flex justify-center">
-        <label class="cursor-pointer flex items-center gap-1">
-         <input 
-          type="checkbox" 
-          v-model="showAnalysisPeriod" 
-          class="w-3 h-3 text-indigo-600 focus:ring-indigo-500"
-          @change="handleAnalysisModeToggle"
-         />
-         <span class="text-xs font-medium text-indigo-700">🔮</span>
-        </label>
-       </div>
-      </div>
      </div>
      
      <!-- Column Headers: Each input aligned with pillar below (9 columns max) -->
@@ -106,14 +91,14 @@
       
       <!-- Column 1: Hour (Natal) -->
       <div class="w-28 flex-shrink-0">
-       <label class="block text-[10px] font-semibold text-gray-700 mb-1 text-center">時 Hour</label>
+       <label v-once class="block text-[10px] font-semibold text-gray-700 mb-1 text-center">時 Hour</label>
        <div class="relative">
         <input
          v-if="!unknownHour"
          v-model="birthTime"
          type="time"
          class="w-full pl-1 pr-6 py-1.5 text-xs border border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center hour-input-no-icon"
-         @change="handleInputChange"
+         @change="triggerChartUpdate"
         />
         <input
          v-else
@@ -138,7 +123,7 @@
       
       <!-- Column 2: Day (Natal) -->
       <div class="w-28 flex-shrink-0">
-       <label class="block text-[10px] font-semibold text-gray-700 mb-1 text-center">日 Day</label>
+       <label v-once class="block text-[10px] font-semibold text-gray-700 mb-1 text-center">日 Day</label>
        <input
         v-model="dayInput"
         type="number"
@@ -146,13 +131,13 @@
         max="31"
         placeholder="DD"
         class="w-full px-1 py-1.5 text-xs border border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center"
-        @change="handleInputChange"
+        @change="triggerChartUpdate"
        />
       </div>
       
       <!-- Column 3: Month (Natal) -->
       <div class="w-28 flex-shrink-0">
-       <label class="block text-[10px] font-semibold text-gray-700 mb-1 text-center">月 Month</label>
+       <label v-once class="block text-[10px] font-semibold text-gray-700 mb-1 text-center">月 Month</label>
        <input
         v-model="monthInput"
         type="number"
@@ -160,13 +145,13 @@
         max="12"
         placeholder="MM"
         class="w-full px-1 py-1.5 text-xs border border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center"
-        @change="handleInputChange"
+        @change="triggerChartUpdate"
        />
       </div>
       
       <!-- Column 4: Year (Natal) -->
       <div class="w-28 flex-shrink-0">
-       <label class="block text-[10px] font-semibold text-gray-700 mb-1 text-center">年 Year</label>
+       <label v-once class="block text-[10px] font-semibold text-gray-700 mb-1 text-center">年 Year</label>
        <input
         v-model="yearInput"
         type="number"
@@ -174,7 +159,7 @@
         max="2100"
         placeholder="YYYY"
         class="w-full px-1 py-1.5 text-xs border border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center"
-        @change="handleInputChange"
+        @change="triggerChartUpdate"
        />
       </div>
       
@@ -185,235 +170,29 @@
        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
       </div>
       
-      <!-- Column 5: 10-Year Luck (Label) -->
-      <div v-if="chartData?.analysis_info?.has_luck_pillar" class="w-28 flex-shrink-0">
-       <label class="block text-[10px] font-semibold text-purple-700 mb-1 text-center">運 10Y Luck</label>
-       <div class="px-1 py-1.5 text-xs bg-purple-50 border border-purple-300 text-center">
-        <div class="text-[10px] font-bold text-purple-700 leading-tight">
-         {{ currentLuckPillar?.timing?.start_year || '?' }} - {{ currentLuckPillar?.timing?.end_year || '?' }}
-        </div>
-       </div>
-      </div>
-      
-      <!-- Right Partition Divider (after 10Y Luck) -->
-      <div v-if="chartData?.analysis_info?.has_luck_pillar" 
-         class="relative flex-shrink-0 mx-3 self-stretch" 
-         style="width: 2px; min-height: 60px;">
-       <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
-      </div>
-      
-      <!-- Column 6: Annual (Analysis Year) - Always show when time travel mode is ON -->
-      <div v-if="showAnalysisPeriod" class="w-28 flex-shrink-0">
-       <div class="flex items-center justify-center gap-1 mb-1">
-        <input 
-         type="checkbox" 
-         v-model="includeAnnualLuck" 
-         class="w-2.5 h-2.5 cursor-pointer"
-         style="accent-color: #C9B037;"
-         @change="handleInputChange"
-         title="Include Annual Luck in calculations"
-        />
-        <label class="text-[10px] font-semibold text-center cursor-pointer" 
-            :style="includeAnnualLuck ? 'color: #8B7355;' : 'color: #9CA3AF;'"
-            @click="includeAnnualLuck = !includeAnnualLuck; handleInputChange()"
-            title="Click to toggle Annual Luck inclusion">
-         年運 Annual
-        </label>
-       </div>
-       <input
-        v-model.number="analysisYear"
-        type="number"
-        min="1900"
-        max="2100"
-        placeholder="YYYY"
-        :class="includeAnnualLuck 
-         ? 'w-full px-1 py-1.5 text-xs border focus:outline-none text-center'
-         : 'w-full px-1 py-1.5 text-xs border border-gray-300 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 text-center bg-gray-50 opacity-60'"
-        :style="includeAnnualLuck ? 'background: #F5F1E8; border-color: #C9B037; color: #8B7355;' : ''"
-        @change="handleInputChange"
-       />
-      </div>
-      
-      <!-- Column 7: Monthly (Analysis Month) - Only show if Annual is enabled -->
-      <div v-if="showAnalysisPeriod && analysisYear && includeAnnualLuck" class="w-28 flex-shrink-0">
-       <div class="flex items-center justify-center gap-1 mb-1">
-        <input 
-         type="checkbox" 
-         v-model="includeMonthlyLuck" 
-         class="w-2.5 h-2.5 cursor-pointer"
-         style="accent-color: #C9B037;"
-         @change="handleInputChange"
-         title="Include Monthly Luck in calculations"
-        />
-        <label class="text-[10px] font-semibold text-center cursor-pointer" 
-            :style="includeMonthlyLuck ? 'color: #8B7355;' : 'color: #9CA3AF;'"
-            @click="includeMonthlyLuck = !includeMonthlyLuck; handleInputChange()"
-            title="Click to toggle Monthly Luck inclusion">
-         月運 Monthly
-        </label>
-       </div>
-       <input
-        v-model.number="analysisMonth"
-        type="number"
-        min="1"
-        max="12"
-        placeholder="MM"
-        :class="includeMonthlyLuck 
-         ? 'w-full px-1 py-1.5 text-xs border focus:outline-none text-center'
-         : 'w-full px-1 py-1.5 text-xs border border-gray-300 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 text-center bg-gray-50 opacity-60'"
-        :style="includeMonthlyLuck ? 'background: #F5F1E8; border-color: #C9B037; color: #8B7355;' : ''"
-        @change="handleInputChange"
-       />
-      </div>
-      
-      <!-- Column 8: Daily (Analysis Day) - Only show if Monthly is enabled -->
-      <div v-if="showAnalysisPeriod && analysisMonth && includeMonthlyLuck" class="w-28 flex-shrink-0">
-       <div class="flex items-center justify-center gap-1 mb-1">
-        <input 
-         type="checkbox" 
-         v-model="includeDailyLuck" 
-         class="w-2.5 h-2.5 cursor-pointer"
-         style="accent-color: #C9B037;"
-         @change="handleInputChange"
-         title="Include Daily Luck in calculations"
-        />
-        <label class="text-[10px] font-semibold text-center cursor-pointer" 
-            :style="includeDailyLuck ? 'color: #8B7355;' : 'color: #9CA3AF;'"
-            @click="includeDailyLuck = !includeDailyLuck; handleInputChange()"
-            title="Click to toggle Daily Luck inclusion">
-         日運 Daily
-        </label>
-       </div>
-       <input
-        v-model.number="analysisDay"
-        type="number"
-        min="1"
-        max="31"
-        placeholder="DD"
-        :class="includeDailyLuck 
-         ? 'w-full px-1 py-1.5 text-xs border focus:outline-none text-center'
-         : 'w-full px-1 py-1.5 text-xs border border-gray-300 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 text-center bg-gray-50 opacity-60'"
-        :style="includeDailyLuck ? 'background: #F5F1E8; border-color: #C9B037; color: #8B7355;' : ''"
-        @change="handleInputChange"
-       />
-      </div>
-      
-      <!-- Column 9: Hourly (Analysis Time) - Only show if Daily is enabled -->
-      <div v-if="showAnalysisPeriod && analysisDay && includeDailyLuck" class="w-28 flex-shrink-0">
-       <div class="flex items-center justify-center gap-1 mb-1">
-        <input 
-         type="checkbox" 
-         v-model="includeHourlyLuck" 
-         class="w-2.5 h-2.5 cursor-pointer"
-         style="accent-color: #C9B037;"
-         @change="handleInputChange"
-         title="Include Hourly Luck in calculations"
-        />
-        <label class="text-[10px] font-semibold text-center cursor-pointer" 
-            :style="includeHourlyLuck ? 'color: #8B7355;' : 'color: #9CA3AF;'"
-            @click="includeHourlyLuck = !includeHourlyLuck; handleInputChange()"
-            title="Click to toggle Hourly Luck inclusion">
-         時運 Hourly
-        </label>
-       </div>
-       <input
-        v-model="analysisTime"
-        type="time"
-        placeholder="HH:MM"
-        :class="includeHourlyLuck 
-         ? 'w-full px-1 py-1.5 text-xs border focus:outline-none text-center'
-         : 'w-full px-1 py-1.5 text-xs border border-gray-300 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 text-center bg-gray-50 opacity-60'"
-        :style="includeHourlyLuck ? 'background: #F5F1E8; border-color: #C9B037; color: #8B7355;' : ''"
-        @change="handleInputChange"
-       />
-      </div>
-      
-      <!-- Talisman Section Toggle (符 - always visible) -->
-      <div class="w-28 flex-shrink-0">
-       <div class="flex justify-center mb-1">
-        <label class="cursor-pointer flex items-center gap-1">
-         <input 
-          type="checkbox" 
-          v-model="showTalismans" 
-          class="w-3 h-3 text-teal-600 focus:ring-teal-500"
-          style="accent-color: #14B8A6;"
-          @change="handleInputChange"
-         />
-         <span class="text-xs font-medium text-teal-700">符</span>
-        </label>
-       </div>
-      </div>
-      
-      <!-- Location Section Toggle (地 - always visible) -->
-      <div class="w-28 flex-shrink-0">
-       <div class="flex justify-center mb-1">
-        <label class="cursor-pointer flex items-center gap-1">
-         <input 
-          type="checkbox" 
-          v-model="showLocation" 
-          class="w-3 h-3 focus:ring-blue-500"
-          style="accent-color: #2563EB;"
-          @change="handleInputChange"
-         />
-         <span class="text-xs font-medium text-gray-700">地</span>
-        </label>
-       </div>
-       <!-- Radio buttons for overseas/birthplace (only show when checked) -->
-       <div v-if="showLocation" class="flex justify-center gap-1">
-        <label class="cursor-pointer flex items-center gap-0.5">
-         <input
-          type="radio"
-          v-model="locationType"
-          value="overseas"
-          class="w-2.5 h-2.5"
-          style="accent-color: #2563EB;"
-          @change="handleInputChange"
-         />
-         <span class="text-[10px] text-blue-700">海</span>
-        </label>
-        <label class="cursor-pointer flex items-center gap-0.5">
-         <input
-          type="radio"
-          v-model="locationType"
-          value="birthplace"
-          class="w-2.5 h-2.5"
-          style="accent-color: #D97706;"
-          @change="handleInputChange"
-         />
-         <span class="text-[10px] text-amber-700">鄉</span>
-        </label>
-       </div>
-      </div>
-      
      </div>
 
-     <!-- Loading Indicator -->
-     <div v-if="isLoading" class="text-center py-4">
-      <div class="inline-flex items-center gap-2">
-       <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-       </svg>
-       <span class="text-sm text-gray-600">Calculating...</span>
+     <!-- Loading Indicator DISABLED - causes flicker -->
+     <div v-if="false" class="fixed inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-40">
+      <div class="bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200">
+       <div class="flex items-center gap-2">
+        <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="text-sm text-gray-700 font-medium">Calculating...</span>
+       </div>
       </div>
      </div>
 
-     <!-- BaZi Chart Display -->
-     <div v-if="natalAndLuckPillars && !isLoading" class="relative">
-      <!-- Natal + Luck Pillars (Horizontal Layout) -->
-      <div class="relative overflow-x-auto" :class="totalPillarCount > 4 ? 'max-w-full' : 'max-w-lg'">
+     <!-- BaZi Chart Display - ALWAYS VISIBLE -->
+     <div class="relative">
+      <!-- NATAL CHART (Row 1) -->
+      <div class="relative overflow-x-auto" style="max-width: calc(4 * 7rem + 3 * 0.25rem + 2 * 7rem + 2 * (0.75rem + 2px));">
        
-       <!-- Heavenly Stems Row -->
+       <!-- Heavenly Stems Row (Natal Only) -->
        <div class="flex gap-1 items-center">
-        <!-- Natal + Luck Pillars -->
-        <template v-for="(pillar, index) in natalAndLuckPillars" :key="`stem-${index}`">
-         <!-- Left Partition: Before 10-year luck pillar (position 4) -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="relative flex-shrink-0 mx-3 self-stretch"
-            style="width: 2px;">
-          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
-         </div>
-         
+        <template v-for="(pillar, index) in natalPillarsOrdered" :key="`natal-stem-${index}`">
          <!-- Pillar Content -->
         <div class="relative w-28 flex-shrink-0">
          <div 
@@ -424,12 +203,6 @@
            getNodeHighlightClass(`stem-${index}`),
            highlightedNodes.includes(`stem-${index}`) ? 'z-50' : '',
            index === 1 ? 'border-2 border-blue-500' : '',
-           pillar.is10YearLuck ? 'border-2 border-purple-500' : '',
-           pillar.isAnnualLuck && !includeAnnualLuck ? 'opacity-40 grayscale' : '',
-           pillar.isMonthlyLuck && !includeMonthlyLuck ? 'opacity-40 grayscale' : '',
-           pillar.isDailyLuck && !includeDailyLuck ? 'opacity-40 grayscale' : '',
-           pillar.isHourlyLuck && !includeHourlyLuck ? 'opacity-40 grayscale' : '',
-           (pillar.isTalismanYear || pillar.isTalismanMonth || pillar.isTalismanDay || pillar.isTalismanHour) ? 'border-2 border-teal-500' : '',
            pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
           ]"
           :style="pillar.isUnknown ? {} : (pillar.stem ? getNodeBgColor(pillar.stem.element, pillar.stem.color) : {})"
@@ -516,31 +289,20 @@
           
           
           <!-- Horizontal WuXing Flow to Next Stem (only in post/transformed view) -->
-          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.stem && natalAndLuckPillars[index + 1]?.stem && index < natalAndLuckPillars.length - 1 && !natalAndLuckPillars[index + 1].isUnknown && getWuXingRelation(pillar.stem.element, natalAndLuckPillars[index + 1].stem.element)"
+          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.stem && natalPillarsOrdered[index + 1]?.stem && index < natalPillarsOrdered.length - 1 && !natalPillarsOrdered[index + 1].isUnknown && getWuXingRelation(pillar.stem.element, natalPillarsOrdered[index + 1].stem.element)"
              class="absolute -right-3 top-1/2 -translate-y-1/2 text-lg font-bold z-30"
-             :class="getWuXingRelationClass(pillar.stem.element, natalAndLuckPillars[index + 1].stem.element)"
-             :title="`${pillar.stem.element} to ${natalAndLuckPillars[index + 1].stem.element}`">
-           {{ getWuXingRelation(pillar.stem.element, natalAndLuckPillars[index + 1].stem.element) }}
+             :class="getWuXingRelationClass(pillar.stem.element, natalPillarsOrdered[index + 1].stem.element)"
+             :title="`${pillar.stem.element} to ${natalPillarsOrdered[index + 1].stem.element}`">
+           {{ getWuXingRelation(pillar.stem.element, natalPillarsOrdered[index + 1].stem.element) }}
           </div>
          </div>
         </div>
-        
-         <!-- Right Partition: After 10-year luck pillar (position 4 only) -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="relative flex-shrink-0 mx-3 self-stretch"
-            style="width: 2px;">
-          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
-         </div>
         </template>
        </div>
        
        <!-- Vertical WuXing Flow Indicators - Always present to maintain consistent spacing -->
        <div class="flex gap-1 -mt-1.5 -mb-1.5 relative z-40 items-center">
-        <template v-for="(pillar, index) in natalAndLuckPillars" :key="`flow-${index}`">
-         <!-- Left Partition spacer: Before 10-year luck pillar -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="flex-shrink-0 mx-3" style="width: 2px;"></div>
-         
+        <template v-for="(pillar, index) in natalPillarsOrdered" :key="`natal-flow-${index}`">
         <div class="flex justify-center items-center h-5 w-28 flex-shrink-0">
          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.stem && pillar.branch && getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element)"
             class="text-lg font-bold"
@@ -549,23 +311,12 @@
           {{ getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element) }}
          </div>
         </div>
-        
-         <!-- Right Partition spacer: After 10-year luck pillar -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="flex-shrink-0 mx-3" style="width: 2px;"></div>
         </template>
        </div>
        
-       <!-- Earthly Branches Row -->
+       <!-- Earthly Branches Row (Natal Only) -->
        <div class="flex gap-1 overflow-visible items-stretch">
-        <template v-for="(pillar, index) in natalAndLuckPillars" :key="`branch-${index}`">
-         <!-- Left Partition: Before 10-year luck pillar -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="relative flex-shrink-0 mx-3 self-stretch"
-            style="width: 2px;">
-          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
-         </div>
-         
+        <template v-for="(pillar, index) in natalPillarsOrdered" :key="`natal-branch-${index}`">
          <!-- Pillar Content -->
         <div class="relative w-28 flex-shrink-0">
          <div 
@@ -576,12 +327,6 @@
            getNodeHighlightClass(`branch-${index}`),
            highlightedNodes.includes(`branch-${index}`) ? 'z-50' : '',
            index === 1 ? 'border-2 border-blue-500' : '',
-           pillar.is10YearLuck ? 'border-2 border-purple-500' : '',
-           pillar.isAnnualLuck && !includeAnnualLuck ? 'opacity-40 grayscale' : '',
-           pillar.isMonthlyLuck && !includeMonthlyLuck ? 'opacity-40 grayscale' : '',
-           pillar.isDailyLuck && !includeDailyLuck ? 'opacity-40 grayscale' : '',
-           pillar.isHourlyLuck && !includeHourlyLuck ? 'opacity-40 grayscale' : '',
-           (pillar.isTalismanYear || pillar.isTalismanMonth || pillar.isTalismanDay || pillar.isTalismanHour) ? 'border-2 border-teal-500' : '',
            pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
           ]"
           :style="pillar.isUnknown ? { aspectRatio: '1/1.2' } : {
@@ -683,31 +428,388 @@
           
           
           <!-- Horizontal WuXing Flow to Next Branch (only in post/transformed view) -->
-          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.branch && natalAndLuckPillars[index + 1]?.branch && index < natalAndLuckPillars.length - 1 && !natalAndLuckPillars[index + 1].isUnknown && getWuXingRelation(pillar.branch.element, natalAndLuckPillars[index + 1].branch.element)"
+          <div v-if="viewMode !== 'base' && !pillar.isUnknown && pillar.branch && natalPillarsOrdered[index + 1]?.branch && index < natalPillarsOrdered.length - 1 && !natalPillarsOrdered[index + 1].isUnknown && getWuXingRelation(pillar.branch.element, natalPillarsOrdered[index + 1].branch.element)"
              class="absolute -right-3 top-1/3 -translate-y-1/2 text-lg font-bold z-50"
-             :class="getWuXingRelationClass(pillar.branch.element, natalAndLuckPillars[index + 1].branch.element)"
-             :title="`${pillar.branch.element} to ${natalAndLuckPillars[index + 1].branch.element}`">
-           {{ getWuXingRelation(pillar.branch.element, natalAndLuckPillars[index + 1].branch.element) }}
+             :class="getWuXingRelationClass(pillar.branch.element, natalPillarsOrdered[index + 1].branch.element)"
+             :title="`${pillar.branch.element} to ${natalPillarsOrdered[index + 1].branch.element}`">
+           {{ getWuXingRelation(pillar.branch.element, natalPillarsOrdered[index + 1].branch.element) }}
           </div>
          </div>
         </div>
-        
-         <!-- Right Partition: After 10-year luck pillar -->
-         <div v-if="index === 4 && natalAndLuckPillars.length > 4" 
-            class="relative flex-shrink-0 mx-3 self-stretch"
-            style="width: 2px;">
-          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
-         </div>
         </template>
        </div>
        
       </div>
+
       
-      <!-- Talisman Input Section (符) - Input controls as header -->
-      <div v-if="showTalismans" class="relative overflow-x-auto max-w-lg mt-6 mb-4">
+      <!-- LUCK PILLARS HEADER ROW -->
+      <div class="mt-12 mb-2">
+       <div class="flex gap-1 items-end">
+        <!-- Hourly Luck Header (under Hour natal) -->
+        <div class="w-28 flex-shrink-0 flex flex-col items-center gap-1">
+         <input type="checkbox" v-model="includeHourlyLuck" class="w-3 h-3" @change="triggerChartUpdate" />
+         <div class="text-xs font-semibold text-gray-700">時運</div>
+         <input v-model="analysisTime" type="time" placeholder="HH:MM"
+          class="w-full px-1 py-1 text-xs border border-gray-300 rounded text-center" @change="triggerChartUpdate" />
+        </div>
+        
+        <!-- Daily Luck Header (under Day natal) -->
+        <div class="w-28 flex-shrink-0 flex flex-col items-center gap-1">
+         <input type="checkbox" v-model="includeDailyLuck" class="w-3 h-3" @change="triggerChartUpdate" />
+         <div class="text-xs font-semibold text-gray-700">日運</div>
+         <input v-model.number="analysisDay" type="number" min="1" max="31" placeholder="DD"
+          class="w-full px-1 py-1 text-xs border border-gray-300 rounded text-center" @change="triggerChartUpdate" />
+        </div>
+        
+        <!-- Monthly Luck Header (under Month natal) -->
+        <div class="w-28 flex-shrink-0 flex flex-col items-center gap-1">
+         <input type="checkbox" v-model="includeMonthlyLuck" class="w-3 h-3" @change="triggerChartUpdate" />
+         <div class="text-xs font-semibold text-gray-700">月運</div>
+         <input v-model.number="analysisMonth" type="number" min="1" max="12" placeholder="MM"
+          class="w-full px-1 py-1 text-xs border border-gray-300 rounded text-center" @change="triggerChartUpdate" />
+        </div>
+        
+        <!-- Annual Luck Header (under Year natal) -->
+        <div class="w-28 flex-shrink-0 flex flex-col items-center gap-1">
+         <input type="checkbox" v-model="includeAnnualLuck" class="w-3 h-3" @change="triggerChartUpdate" />
+         <div class="text-xs font-semibold text-gray-700">年運</div>
+         <input v-model.number="analysisYear" type="number" :min="minAnalysisYear" :max="maxAnalysisYear" placeholder="YYYY"
+          class="w-full px-1 py-1 text-xs border border-gray-300 rounded text-center" @change="triggerChartUpdate" />
+        </div>
+        
+        <!-- Left Purple Divider (before 10Y Luck) -->
+        <div v-if="chartData?.analysis_info?.has_luck_pillar" class="relative flex-shrink-0 mx-3 self-stretch" style="width: 2px;">
+         <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+        </div>
+        
+        <!-- 10Y Luck Header with Time Travel Toggle -->
+        <div class="w-28 flex-shrink-0 flex flex-col items-center gap-1">
+         <!-- Time Travel Toggle (above 10Y) -->
+         <div class="flex items-center gap-1 mb-2">
+          <input type="checkbox" v-model="showAnalysisPeriod" class="w-3 h-3" @change="triggerChartUpdate" />
+          <span class="text-[10px]">🔮 Time Travel</span>
+         </div>
+         
+         <!-- 10Y Luck Header (always show) -->
+         <div class="text-xs font-semibold text-purple-700">運 10Y</div>
+         <div v-if="currentLuckPillar?.timing" class="text-[10px] text-gray-600">
+          {{ currentLuckPillar?.timing?.start_year || '?' }}-{{ currentLuckPillar?.timing?.end_year || '?' }}
+         </div>
+           
+        </div>
+        
+        <!-- Right Purple Divider (after 10Y Luck) -->
+        <div v-if="chartData?.analysis_info?.has_luck_pillar" class="relative flex-shrink-0 mx-3 self-stretch" style="width: 2px;">
+         <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+        </div>
+        
+        <!-- Location Section (地 - after 10Y Luck) -->
+        <div class="w-28 flex-shrink-0 flex flex-col items-center gap-1">
+           <div class="flex justify-center mb-1">
+            <label class="cursor-pointer flex items-center gap-1">
+             <input 
+              type="checkbox" 
+              v-model="showLocation" 
+              class="w-3 h-3 focus:ring-blue-500"
+              style="accent-color: #2563EB;"
+              @change="triggerChartUpdate"
+             />
+             <span class="text-xs font-medium text-gray-700">地</span>
+            </label>
+           </div>
+           <!-- Radio buttons for overseas/birthplace (only show when checked) -->
+           <div v-if="showLocation" class="flex justify-center gap-1">
+            <label class="cursor-pointer flex items-center gap-0.5">
+             <input
+              type="radio"
+              v-model="locationType"
+              value="overseas"
+              class="w-2.5 h-2.5"
+              style="accent-color: #2563EB;"
+              @change="triggerChartUpdate"
+             />
+             <span class="text-[10px] text-blue-700">海</span>
+            </label>
+            <label class="cursor-pointer flex items-center gap-0.5">
+             <input
+              type="radio"
+              v-model="locationType"
+              value="birthplace"
+              class="w-2.5 h-2.5"
+              style="accent-color: #D97706;"
+              @change="triggerChartUpdate"
+             />
+             <span class="text-[10px] text-amber-700">鄉</span>
+            </label>
+           </div>
+        </div>
+       </div>
+      </div>
+      
+      <!-- LUCK PILLARS (Stems and Branches) - ALWAYS visible -->
+      <div>
+       
+       <!-- Luck Heavenly Stems Row -->
+       <div class="flex gap-1 items-center">
+        <template v-for="(pillar, index) in luckPillarsDisplay" :key="`luck-stem-${index}`">
+         <!-- Empty slot for alignment -->
+         <div v-if="!pillar" class="w-28 flex-shrink-0"></div>
+         
+         <template v-else>
+          <!-- Left Purple Divider (before 10Y Luck - index 4) -->
+          <div v-if="index === 4" class="relative flex-shrink-0 mx-3 self-stretch" style="width: 2px;">
+           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+          </div>
+         
+          <!-- Luck Stem Pillar -->
+          <div class="relative w-28 flex-shrink-0">
+           <div 
+            :id="`stem-${getLuckPosition(index)}`"
+            class="aspect-square p-3 transition-all duration-300 relative flex flex-col items-center justify-center"
+            :class="[
+             pillar.isEmpty || !pillar.stem ? 'border border-dashed border-gray-300 bg-gray-50 opacity-40' : '',
+             !pillar.isEmpty && (hoveredNode === `stem-${getLuckPosition(index)}` ? 'shadow-lg scale-105' : 'border border-gray-300'),
+             !pillar.isEmpty && getNodeHighlightClass(`stem-${getLuckPosition(index)}`),
+             !pillar.isEmpty && highlightedNodes.includes(`stem-${getLuckPosition(index)}`) ? 'z-50' : '',
+             !pillar.isEmpty && pillar.isLuckPillar ? 'border-2 border-purple-500' : '',
+             !pillar.isEmpty && pillar.isAnnualLuck ? 'border-2 border-orange-500' : '',
+             !pillar.isEmpty && pillar.isMonthlyLuck ? 'border-2 border-green-500' : '',
+             !pillar.isEmpty && pillar.isDailyLuck ? 'border-2 border-indigo-500' : '',
+             !pillar.isEmpty && pillar.isHourlyLuck ? 'border-2 border-pink-500' : ''
+            ]"
+            :style="!pillar.isEmpty && pillar.stem ? getNodeBgColor(pillar.stem.element, pillar.stem.color) : {}"
+           >
+            <!-- Negative Badges -->
+            <div v-if="pillar.stemNegatives && pillar.stemNegatives.length > 0" 
+               class="absolute top-1 left-1 gap-0.5 z-20"
+               :class="pillar.stemNegatives.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-start'">
+             <div v-for="(neg, idx) in pillar.stemNegatives" 
+                :key="`luck-stem-neg-${index}-${idx}`"
+                class="flex items-center justify-center font-bold transition-transform cursor-help"
+                :class="[getNegativeBadgeSizeClass(neg.strength), isBadgeHighlighted(neg) ? 'scale-125 shadow-lg' : 'hover:scale-110']"
+                :style="getNegativeBadgeStyle(neg)"
+                :title="getNegativeBadgeTooltip(neg)"
+                @mouseenter="handleBadgeHover(neg)"
+                @mouseleave="clearHighlight()">
+              <span class="leading-none">{{ getNegativeBadgeSymbol(neg) }}</span>
+             </div>
+            </div>
+            
+            <!-- Transformation Badges -->
+            <div v-if="pillar.stemTransformations && pillar.stemTransformations.length > 0" 
+               class="absolute top-1 right-1 gap-0.5"
+               :class="pillar.stemTransformations.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-end'">
+             <div v-for="(trans, idx) in pillar.stemTransformations" 
+                :key="`luck-stem-trans-${index}-${idx}`"
+                class="flex items-center justify-center font-bold rounded-full shadow-md transition-transform cursor-help"
+                :class="[getTransformationSizeClass(trans.strength), isBadgeHighlighted(trans) ? 'scale-125 shadow-lg' : 'hover:scale-110']"
+                :style="getTransformationBadgeStyles(trans)"
+                :title="getTransformationTooltip(trans)"
+                @mouseenter="handleBadgeHover(trans)"
+                @mouseleave="clearHighlight()">
+              <span class="leading-none">{{ getTransformBadgeDisplay(trans.badge) }}</span>
+             </div>
+            </div>
+            
+            <!-- Content -->
+            <div v-if="pillar.stemName" class="text-xs text-gray-700 mb-1">{{ pillar.stemName }}</div>
+            <div v-if="pillar.stem" class="text-2xl font-bold text-black">{{ pillar.stem.chinese }}</div>
+            <div v-else class="text-xl text-gray-400">-</div>
+            <div v-if="pillar.stem" class="text-xs text-gray-700">
+             {{ pillar.stem.element.replace('Yang ', '').replace('Yin ', '') }} {{ pillar.stem.element.includes('Yang') ? '+' : '-' }}
+            </div>
+            <div class="text-xs mt-1 text-gray-900">{{ pillar.tenGod || '' }}</div>
+            
+            <!-- Combination Badges -->
+            <div v-if="pillar.stemCombinations && pillar.stemCombinations.length > 0" 
+               class="absolute bottom-1 right-1 gap-0.5 flex items-start content-start"
+               :class="pillar.stemCombinations.length >= 3 ? 'flex-wrap-reverse flex-row justify-end' : 'flex-row items-end'"
+               :style="pillar.stemCombinations.length >= 3 ? 'max-width: 40px;' : ''">
+             <div v-for="(comb, idx) in pillar.stemCombinations" 
+                :key="`luck-stem-comb-${index}-${idx}`"
+                class="flex items-center justify-center font-bold rounded-full transition-transform cursor-help"
+                :class="[getCombinationBadgeSizeClass(comb.strength), isBadgeHighlighted(comb) ? 'scale-125 shadow-lg' : 'hover:scale-110']"
+                :style="getCombinationBadgeStyle(comb)"
+                :title="getCombinationTooltip(comb)"
+                @mouseenter="handleBadgeHover(comb)"
+                @mouseleave="clearHighlight()">
+              <span class="leading-none">{{ getTransformBadgeDisplay(comb.badge) }}</span>
+             </div>
+            </div>
+            
+            <!-- Horizontal WuXing Flow -->
+            <div v-if="viewMode !== 'base' && pillar.stem && luckPillarsDisplay[index + 1]?.stem && index < luckPillarsDisplay.length - 1 && getWuXingRelation(pillar.stem.element, luckPillarsDisplay[index + 1].stem.element)"
+               class="absolute -right-3 top-1/2 -translate-y-1/2 text-lg font-bold z-30"
+               :class="getWuXingRelationClass(pillar.stem.element, luckPillarsDisplay[index + 1].stem.element)"
+               :title="`${pillar.stem.element} to ${luckPillarsDisplay[index + 1].stem.element}`">
+             {{ getWuXingRelation(pillar.stem.element, luckPillarsDisplay[index + 1].stem.element) }}
+            </div>
+           </div>
+          </div>
+          
+          <!-- Right Purple Divider (after 10Y Luck - index 4) -->
+          <div v-if="index === 4" class="relative flex-shrink-0 mx-3 self-stretch" style="width: 2px;">
+           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+          </div>
+         </template>
+        </template>
+       </div>
+       
+       <!-- Vertical Flow Indicators -->
+       <div class="flex gap-1 -mt-1.5 -mb-1.5 relative z-40 items-center">
+        <template v-for="(pillar, index) in luckPillarsDisplay" :key="`luck-flow-${index}`">
+         <div v-if="!pillar" class="w-28 flex-shrink-0"></div>
+         <template v-else>
+          <div v-if="index === 4" class="flex-shrink-0 mx-3" style="width: 2px;"></div>
+          <div class="flex justify-center items-center h-5 w-28 flex-shrink-0">
+           <div v-if="viewMode !== 'base' && pillar.stem && pillar.branch && getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element)"
+              class="text-lg font-bold"
+              :class="getVerticalWuXingClass(pillar.stem.element, pillar.branch.element)"
+              :title="`${pillar.stem.element} to ${pillar.branch.element}`">
+            {{ getVerticalWuXingRelation(pillar.stem.element, pillar.branch.element) }}
+           </div>
+          </div>
+          <div v-if="index === 4" class="flex-shrink-0 mx-3" style="width: 2px;"></div>
+         </template>
+        </template>
+       </div>
+       
+       <!-- Luck Earthly Branches Row -->
+       <div class="flex gap-1 overflow-visible items-stretch">
+        <template v-for="(pillar, index) in luckPillarsDisplay" :key="`luck-branch-${index}`">
+         <!-- Empty slot for alignment -->
+         <div v-if="!pillar" class="w-28 flex-shrink-0"></div>
+         
+         <template v-else>
+          <!-- Left Purple Divider (before 10Y Luck - index 4) -->
+          <div v-if="index === 4" class="relative flex-shrink-0 mx-3 self-stretch" style="width: 2px;">
+           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+          </div>
+         
+          <!-- Luck Branch Pillar -->
+          <div class="relative w-28 flex-shrink-0">
+           <div 
+            :id="`branch-${getLuckPosition(index)}`"
+            class="pb-0 pt-2 px-3 transition-all duration-300 relative flex flex-col items-center justify-start"
+            :class="[
+             pillar.isEmpty || !pillar.branch ? 'border border-dashed border-gray-300 bg-gray-50 opacity-40' : '',
+             !pillar.isEmpty && (hoveredNode === `branch-${getLuckPosition(index)}` ? 'shadow-lg scale-105' : 'border border-gray-300'),
+             !pillar.isEmpty && getNodeHighlightClass(`branch-${getLuckPosition(index)}`),
+             !pillar.isEmpty && highlightedNodes.includes(`branch-${getLuckPosition(index)}`) ? 'z-50' : '',
+             !pillar.isEmpty && pillar.isLuckPillar ? 'border-2 border-purple-500' : '',
+             !pillar.isEmpty && pillar.isAnnualLuck ? 'border-2 border-orange-500' : '',
+             !pillar.isEmpty && pillar.isMonthlyLuck ? 'border-2 border-green-500' : '',
+             !pillar.isEmpty && pillar.isDailyLuck ? 'border-2 border-indigo-500' : '',
+             !pillar.isEmpty && pillar.isHourlyLuck ? 'border-2 border-pink-500' : ''
+            ]"
+            :style="{ ...(!pillar.isEmpty && pillar.branch ? getNodeBgColor(pillar.branch.element, pillar.branch.color) : {}), aspectRatio: '1/1.2' }"
+           >
+            <!-- Negative Badges -->
+            <div v-if="pillar.branchNegatives && pillar.branchNegatives.length > 0" 
+               class="absolute top-1 left-1 gap-0.5 z-20"
+               :class="pillar.branchNegatives.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-start'">
+             <div v-for="(neg, idx) in pillar.branchNegatives" 
+                :key="`luck-branch-neg-${index}-${idx}`"
+                class="flex items-center justify-center font-bold transition-transform cursor-help"
+                :class="[getNegativeBadgeSizeClass(neg.strength), isBadgeHighlighted(neg) ? 'scale-125 shadow-lg' : 'hover:scale-110']"
+                :style="getNegativeBadgeStyle(neg)"
+                :title="getNegativeBadgeTooltip(neg)"
+                @mouseenter="handleBadgeHover(neg)"
+                @mouseleave="clearHighlight()">
+              <span class="leading-none">{{ getNegativeBadgeSymbol(neg) }}</span>
+             </div>
+            </div>
+            
+            <!-- Transformation Badges -->
+            <div v-if="pillar.branchTransformations && pillar.branchTransformations.length > 0" 
+               class="absolute top-1 right-1 gap-0.5"
+               :class="pillar.branchTransformations.length >= 3 ? 'grid grid-cols-2 items-start' : 'flex flex-col items-end'">
+             <div v-for="(trans, idx) in pillar.branchTransformations" 
+                :key="`luck-branch-trans-${index}-${idx}`"
+                class="flex items-center justify-center font-bold rounded-full shadow-md transition-transform cursor-help"
+                :class="[getTransformationSizeClass(trans.strength), isBadgeHighlighted(trans) ? 'scale-125 shadow-lg' : 'hover:scale-110']"
+                :style="getTransformationBadgeStyles(trans)"
+                :title="getTransformationTooltip(trans)"
+                @mouseenter="handleBadgeHover(trans)"
+                @mouseleave="clearHighlight()">
+              <span class="leading-none">{{ getTransformBadgeDisplay(trans.badge) }}</span>
+             </div>
+            </div>
+            
+            <!-- Content -->
+            <div v-if="pillar.branchName" class="text-xs text-gray-700 mb-1">{{ pillar.branchName }}</div>
+            <div v-if="pillar.branch" class="text-2xl font-bold text-black">{{ pillar.branch.chinese }}</div>
+            <div v-else class="text-xl text-gray-400">-</div>
+            <div v-if="pillar.branch && pillar.branch.animal" class="text-xs text-gray-700 mt-1">{{ pillar.branch.animal }}</div>
+            
+            <!-- Combination Badges -->
+            <div v-if="pillar.branchCombinations && pillar.branchCombinations.length > 0" 
+               class="absolute bottom-1 right-1 gap-0.5 flex items-start content-start"
+               :class="pillar.branchCombinations.length >= 3 ? 'flex-wrap-reverse flex-row justify-end' : 'flex-row items-end'"
+               :style="pillar.branchCombinations.length >= 3 ? 'max-width: 40px;' : ''">
+             <div v-for="(comb, idx) in pillar.branchCombinations" 
+                :key="`luck-branch-comb-${index}-${idx}`"
+                class="flex items-center justify-center font-bold rounded-full transition-transform cursor-help"
+                :class="[getCombinationBadgeSizeClass(comb.strength), isBadgeHighlighted(comb) ? 'scale-125 shadow-lg' : 'hover:scale-110']"
+                :style="getCombinationBadgeStyle(comb)"
+                :title="getCombinationTooltip(comb)"
+                @mouseenter="handleBadgeHover(comb)"
+                @mouseleave="clearHighlight()">
+              <span class="leading-none">{{ getTransformBadgeDisplay(comb.badge) }}</span>
+             </div>
+            </div>
+            
+            <!-- Horizontal WuXing Flow -->
+            <div v-if="viewMode !== 'base' && pillar.branch && luckPillarsDisplay[index + 1]?.branch && index < luckPillarsDisplay.length - 1 && getWuXingRelation(pillar.branch.element, luckPillarsDisplay[index + 1].branch.element)"
+               class="absolute -right-3 top-1/3 -translate-y-1/2 text-lg font-bold z-50"
+               :class="getWuXingRelationClass(pillar.branch.element, luckPillarsDisplay[index + 1].branch.element)"
+               :title="`${pillar.branch.element} to ${luckPillarsDisplay[index + 1].branch.element}`">
+             {{ getWuXingRelation(pillar.branch.element, luckPillarsDisplay[index + 1].branch.element) }}
+            </div>
+            
+            <!-- Hidden Heavenly Stems (Proportional bars at bottom) -->
+            <div v-if="!pillar.isEmpty && (pillar.hiddenStems || pillar.hiddenQi)" class="absolute bottom-0 left-0 right-0 flex overflow-hidden h-10">
+             <div 
+              v-for="(qiData, stem) in getHiddenStemsWithWeights(pillar)" 
+              :key="stem"
+              class="flex flex-col items-center justify-start text-black overflow-hidden pt-1 pb-0.5 h-full"
+              :style="{
+               ...getNodeBgColor(getStemElement(stem), qiData.color),
+               width: `${qiData.weight}%`
+              }"
+              :title="`${stem}: ${qiData.god ? qiData.god + ' - ' : ''}Score: ${qiData.score || 'N/A'} (${qiData.weight}%)`"
+             >
+              <div class="text-[8px] text-gray-600 leading-tight">{{ stem }}</div>
+              <div class="text-[10px] text-black leading-tight">{{ stemMappings[stem] || stem }}</div>
+              <div class="text-[8px] text-gray-800 font-medium leading-tight">{{ qiData.god || '' }}</div>
+             </div>
+            </div>
+           </div>
+          </div>
+          
+          <!-- Right Purple Divider (after 10Y Luck - index 4) -->
+          <div v-if="index === 4" class="relative flex-shrink-0 mx-3 self-stretch" style="width: 2px;">
+           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-purple-500 to-transparent opacity-70"></div>
+          </div>
+         </template>
+        </template>
+       </div>
+      </div>
+      
+      <!-- Talisman Configuration - ALWAYS visible -->
+      <div class="mt-12 mb-4">
        <div class="flex items-center gap-2 mb-3">
-        <span class="text-sm font-semibold text-teal-700">符 Talisman Configuration</span>
-        <span v-if="hasInvalidTalismanPairs" class="text-xs text-red-600 font-semibold">⚠ Invalid Jia-Zi pairs detected</span>
+        <label class="cursor-pointer flex items-center gap-1">
+         <input 
+          type="checkbox" 
+          v-model="showTalismans" 
+          class="w-3 h-3 text-teal-600 focus:ring-teal-500"
+          style="accent-color: #14B8A6;"
+          @change="triggerChartUpdate"
+         />
+         <span class="text-sm font-semibold text-teal-700">符 Talisman Configuration</span>
+        </label>
+        <span v-if="showTalismans && hasInvalidTalismanPairs" class="text-xs text-red-600 font-semibold">⚠ Invalid Jia-Zi pairs detected</span>
        </div>
        
        <div class="flex gap-1">
@@ -720,18 +822,20 @@
          <div class="flex flex-col gap-1">
           <select 
            v-model="talismanHourHS" 
-           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
-           :class="isValidJiaziPair(talismanHourHS, talismanHourEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
-           @change="handleInputChange"
+           :disabled="!showTalismans"
+           class="w-full px-1 py-1.5 text-[10px] rounded border-2 transition-all"
+           :class="!showTalismans ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' : (isValidJiaziPair(talismanHourHS, talismanHourEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800')"
+           @change="triggerChartUpdate"
           >
            <option :value="null">-- HS --</option>
            <option v-for="stem in HEAVENLY_STEMS_LIST" :key="stem.id" :value="stem.id">{{ stem.display }}</option>
           </select>
           <select 
            v-model="talismanHourEB" 
-           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
-           :class="isValidJiaziPair(talismanHourHS, talismanHourEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
-           @change="handleInputChange"
+           :disabled="!showTalismans"
+           class="w-full px-1 py-1.5 text-[10px] rounded border-2 transition-all"
+           :class="!showTalismans ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' : (isValidJiaziPair(talismanHourHS, talismanHourEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800')"
+           @change="triggerChartUpdate"
           >
            <option :value="null">-- EB --</option>
            <option v-for="branch in EARTHLY_BRANCHES_LIST" :key="branch.id" :value="branch.id">{{ branch.display }}</option>
@@ -747,19 +851,21 @@
          </div>
          <div class="flex flex-col gap-1">
           <select 
-           v-model="talismanDayHS" 
-           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
-           :class="isValidJiaziPair(talismanDayHS, talismanDayEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
-           @change="handleInputChange"
+           v-model="talismanDayHS"
+           :disabled="!showTalismans" 
+           class="w-full px-1 py-1.5 text-[10px] rounded border-2 transition-all"
+           :class="!showTalismans ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' : (isValidJiaziPair(talismanDayHS, talismanDayEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800')"
+           @change="triggerChartUpdate"
           >
            <option :value="null">-- HS --</option>
            <option v-for="stem in HEAVENLY_STEMS_LIST" :key="stem.id" :value="stem.id">{{ stem.display }}</option>
           </select>
           <select 
            v-model="talismanDayEB" 
-           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
-           :class="isValidJiaziPair(talismanDayHS, talismanDayEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
-           @change="handleInputChange"
+           :disabled="!showTalismans"
+           class="w-full px-1 py-1.5 text-[10px] rounded border-2 transition-all"
+           :class="!showTalismans ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' : (isValidJiaziPair(talismanDayHS, talismanDayEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800')"
+           @change="triggerChartUpdate"
           >
            <option :value="null">-- EB --</option>
            <option v-for="branch in EARTHLY_BRANCHES_LIST" :key="branch.id" :value="branch.id">{{ branch.display }}</option>
@@ -776,18 +882,20 @@
          <div class="flex flex-col gap-1">
           <select 
            v-model="talismanMonthHS" 
-           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
-           :class="isValidJiaziPair(talismanMonthHS, talismanMonthEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
-           @change="handleInputChange"
+           :disabled="!showTalismans"
+           class="w-full px-1 py-1.5 text-[10px] rounded border-2 transition-all"
+           :class="!showTalismans ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' : (isValidJiaziPair(talismanMonthHS, talismanMonthEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800')"
+           @change="triggerChartUpdate"
           >
            <option :value="null">-- HS --</option>
            <option v-for="stem in HEAVENLY_STEMS_LIST" :key="stem.id" :value="stem.id">{{ stem.display }}</option>
           </select>
           <select 
            v-model="talismanMonthEB" 
-           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
-           :class="isValidJiaziPair(talismanMonthHS, talismanMonthEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
-           @change="handleInputChange"
+           :disabled="!showTalismans"
+           class="w-full px-1 py-1.5 text-[10px] rounded border-2 transition-all"
+           :class="!showTalismans ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' : (isValidJiaziPair(talismanMonthHS, talismanMonthEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800')"
+           @change="triggerChartUpdate"
           >
            <option :value="null">-- EB --</option>
            <option v-for="branch in EARTHLY_BRANCHES_LIST" :key="branch.id" :value="branch.id">{{ branch.display }}</option>
@@ -804,18 +912,20 @@
          <div class="flex flex-col gap-1">
           <select 
            v-model="talismanYearHS" 
-           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
-           :class="isValidJiaziPair(talismanYearHS, talismanYearEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
-           @change="handleInputChange"
+           :disabled="!showTalismans"
+           class="w-full px-1 py-1.5 text-[10px] rounded border-2 transition-all"
+           :class="!showTalismans ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' : (isValidJiaziPair(talismanYearHS, talismanYearEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800')"
+           @change="triggerChartUpdate"
           >
            <option :value="null">-- HS --</option>
            <option v-for="stem in HEAVENLY_STEMS_LIST" :key="stem.id" :value="stem.id">{{ stem.display }}</option>
           </select>
           <select 
            v-model="talismanYearEB" 
-           class="w-full px-1 py-1.5 text-[9px] rounded border-2 transition-all"
-           :class="isValidJiaziPair(talismanYearHS, talismanYearEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800'"
-           @change="handleInputChange"
+           :disabled="!showTalismans"
+           class="w-full px-1 py-1.5 text-[10px] rounded border-2 transition-all"
+           :class="!showTalismans ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' : (isValidJiaziPair(talismanYearHS, talismanYearEB) ? 'bg-teal-50 border-teal-400 text-teal-800' : 'bg-red-50 border-red-400 text-red-800')"
+           @change="triggerChartUpdate"
           >
            <option :value="null">-- EB --</option>
            <option v-for="branch in EARTHLY_BRANCHES_LIST" :key="branch.id" :value="branch.id">{{ branch.display }}</option>
@@ -825,8 +935,8 @@
        </div>
       </div>
       
-      <!-- Talisman Pillars Display (符) - Chart display below input controls -->
-      <div v-if="showTalismans && talismanPillarsDisplay.some(p => p !== null)" class="relative overflow-x-auto max-w-lg">
+      <!-- Talisman Pillars Display (符) - ALWAYS visible -->
+      <div>
        <div class="mb-2">
         <span class="text-sm font-semibold text-teal-700">符 Talisman Pillars</span>
        </div>
@@ -843,12 +953,13 @@
            :id="`talisman-stem-${index}`"
            class="aspect-square p-3 transition-all duration-300 relative flex flex-col items-center justify-center border-2 border-teal-500"
            :class="[
-            hoveredNode === `talisman-stem-${index}` ? 'shadow-lg scale-105' : '',
-            getNodeHighlightClass(`talisman-stem-${index}`),
-            highlightedNodes.includes(`talisman-stem-${index}`) ? 'z-50' : '',
+            pillar.isEmpty || !pillar.stem ? 'bg-gray-50 border-dashed opacity-40' : '',
+            !pillar.isEmpty && (hoveredNode === `talisman-stem-${index}` ? 'shadow-lg scale-105' : ''),
+            !pillar.isEmpty && getNodeHighlightClass(`talisman-stem-${index}`),
+            !pillar.isEmpty && highlightedNodes.includes(`talisman-stem-${index}`) ? 'z-50' : '',
             pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
            ]"
-           :style="pillar.isUnknown ? {} : (pillar.stem ? getNodeBgColor(pillar.stem.element, pillar.stem.color) : {})"
+           :style="pillar.isUnknown || pillar.isEmpty ? {} : (pillar.stem ? getNodeBgColor(pillar.stem.element, pillar.stem.color) : {})"
           >
            <!-- Negative Badges (top-left) -->
            <div v-if="pillar.stemNegatives && pillar.stemNegatives.length > 0" 
@@ -950,12 +1061,13 @@
            :id="`talisman-branch-${index}`"
            class="pb-0 pt-2 px-3 transition-all duration-300 relative flex flex-col items-center justify-start border-2 border-teal-500"
            :class="[
-            hoveredNode === `talisman-branch-${index}` ? 'shadow-lg scale-105' : '',
-            getNodeHighlightClass(`talisman-branch-${index}`),
-            highlightedNodes.includes(`talisman-branch-${index}`) ? 'z-50' : '',
+            pillar.isEmpty || !pillar.branch ? 'bg-gray-50 border-dashed opacity-40' : '',
+            !pillar.isEmpty && (hoveredNode === `talisman-branch-${index}` ? 'shadow-lg scale-105' : ''),
+            !pillar.isEmpty && getNodeHighlightClass(`talisman-branch-${index}`),
+            !pillar.isEmpty && highlightedNodes.includes(`talisman-branch-${index}`) ? 'z-50' : '',
             pillar.isUnknown ? 'bg-gray-100 border-dashed opacity-60' : ''
            ]"
-           :style="pillar.isUnknown ? { aspectRatio: '1/1.2' } : {
+           :style="pillar.isUnknown || pillar.isEmpty ? { aspectRatio: '1/1.2' } : {
             ...(pillar.branch ? getNodeBgColor(pillar.branch.element, pillar.branch.color) : {}),
             aspectRatio: '1/1.2'
            }"
@@ -1142,7 +1254,7 @@
             <div class="flex flex-wrap justify-center items-center gap-0.5 min-h-[24px]">
              <div v-for="(god, stem) in pillar.hiddenStems" 
                 :key="`location-hidden-${index}-${stem}`"
-                class="relative flex items-center justify-center text-[9px] px-1 py-0.5 rounded"
+                class="relative flex items-center justify-center text-[10px] px-1 py-0.5 rounded"
                 :style="{
                  backgroundColor: stemMappings[stem] ? getElementColorHex(stemMappings[stem]) + '20' : '#F3F4F6',
                  border: `1px solid ${stemMappings[stem] ? getElementColorHex(stemMappings[stem]) + '60' : '#D1D5DB'}`
@@ -1162,84 +1274,9 @@
        
       <!-- Interaction Tooltip -->
      
-     <!-- Element Scores Comparison (Wu Xing) -->
-     <div v-if="chartData?.daymaster_analysis" class="mt-2 p-2 bg-white shadow-sm border border-gray-200 max-w-2xl">
-      <div class="flex items-center justify-between mb-1.5">
-       <h3 class="text-xs font-semibold text-gray-800">五行 Wu Xing Elements</h3>
-       <!-- View Mode Toggle -->
-       <div class="flex items-center gap-2">
-        <span class="text-xs text-gray-600">View:</span>
-        <div class="flex bg-gray-100 p-0.5">
-         <button
-          @click="viewMode = 'base'"
-          :class="[
-           'px-2 py-0.5 text-xs transition-all',
-           viewMode === 'base' 
-            ? 'bg-white text-gray-900 shadow-sm' 
-            : 'text-gray-600 hover:text-gray-900'
-          ]"
-         >
-          Base
-         </button>
-         <button
-          @click="viewMode = 'post'"
-          :class="[
-           'px-2 py-0.5 text-xs transition-all',
-           viewMode === 'post' 
-            ? 'bg-white text-gray-900 shadow-sm' 
-            : 'text-gray-600 hover:text-gray-900'
-          ]"
-         >
-          Post Interaction
-         </button>
-        </div>
-       </div>
-      </div>
-      <div class="flex items-center justify-between text-[9px] text-gray-500 mb-1">
-       <div>
-        <span v-if="viewMode === 'base'" class="text-blue-700 font-medium">Base: 8 natal nodes, no interactions</span>
-        <span v-else class="text-indigo-700 font-medium">Post: All nodes (natal + luck + talisman + location) with interactions</span>
-       </div>
-       <div>Total: {{ Math.round(viewMode === 'base' ? naiveTotal : finalTotal) }}%</div>
-      </div>
-      <div class="space-y-1">
-       <div v-for="element in fiveElementsWithRelations" :key="element.name">
-        <div class="flex justify-between items-center text-[10px] mb-0.5">
-         <div class="flex items-center gap-1">
-          <span :class="getElementColor(element.name)" class="font-medium">{{ element.name }}</span>
-          <span v-if="element.relationship" class="text-[8px] px-0.5 py-0 bg-gray-100 text-gray-600">{{ element.relationship }}</span>
-          <span v-if="viewMode === 'post' && element.change > 0" class="text-[8px] px-0.5 py-0 bg-green-50 text-green-600 opacity-80">↑</span>
-          <span v-else-if="viewMode === 'post' && element.change < 0" class="text-[8px] px-0.5 py-0 bg-red-50 text-red-600 opacity-80">↓</span>
-         </div>
-         <span class="text-gray-600 text-[9px]">
-          <template v-if="viewMode === 'base'">{{ Math.round(element.naiveRaw) }}pts ({{ Math.round(element.naive) }}%)</template>
-          <template v-else>{{ Math.round(element.naiveRaw) }}→{{ Math.round(element.finalRaw) }}pts ({{ Math.round(element.naive) }}→{{ Math.round(element.final) }}%<span :class="element.change > 0 ? 'text-green-600 font-medium' : element.change < 0 ? 'text-red-600 font-medium' : 'text-gray-400'">{{ element.change > 0 ? '+' : '' }}{{ Math.round(element.change) }}%</span>)</template>
-         </span>
-        </div>
-        <div class="relative h-4 bg-gray-100 overflow-hidden">
-         <div class="absolute inset-0 flex"><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5"></div></div>
-         <template v-if="viewMode === 'base'">
-          <div class="absolute top-0 left-0 h-full transition-all duration-500" :class="getElementBgColor(element.name)" :style="`width: ${Math.min((element.naive / maxElementScore) * 100, 100)}%`"></div>
-          <div class="absolute top-0 h-full flex items-center transition-all duration-500" :style="`left: ${Math.min((element.naive / maxElementScore) * 100, 100)}%`"><span class="ml-1 text-[8px] font-medium text-gray-700">{{ Math.round((element.naive / maxElementScore) * 100) }}%</span></div>
-         </template>
-         <template v-else>
-          <template v-if="element.change > 0">
-           <div class="absolute top-0 left-0 h-full rounded-l transition-all duration-500" :class="getElementBgColor(element.name)" :style="`width: ${Math.min((element.naive / maxElementScore) * 100, 100)}%`"></div>
-           <div class="absolute top-0 h-full rounded-r transition-all duration-500" :class="getElementBgColor(element.name)" :style="`left: ${Math.min((element.naive / maxElementScore) * 100, 100)}%; width: ${Math.min(((element.final - element.naive) / maxElementScore) * 100, 100 - (element.naive / maxElementScore) * 100)}%; background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.2) 2px, rgba(255,255,255,0.2) 4px);`"></div>
-          </template>
-          <template v-else>
-           <div class="absolute top-0 left-0 h-full transition-all duration-500" :class="[element.change < 0 ? 'border border-dotted' : 'border', getElementBorderColor(element.name)]" :style="`width: ${Math.min((element.naive / maxElementScore) * 100, 100)}%; background-color: transparent;`"></div>
-           <div class="absolute top-0 left-0 h-full transition-all duration-700" :class="[getElementBgColor(element.name), element.change < 0 ? 'opacity-80' : '']" :style="`width: ${Math.min((element.final / maxElementScore) * 100, 100)}%`"></div>
-          </template>
-          <div class="absolute top-0 h-full flex items-center transition-all duration-500" :style="`left: ${Math.min((element.final / maxElementScore) * 100, 100)}%`"><span class="ml-1 text-[8px] font-medium text-gray-700">{{ Math.round((element.final / maxElementScore) * 100) }}%</span></div>
-         </template>
-        </div>
-       </div>
-      </div>
-     </div>
-     
+
      <!-- Day Master Analysis -->
-     <div v-if="chartData?.daymaster_analysis" class="mt-2 p-2 bg-blue-50 max-w-2xl">
+     <div v-if="chartData?.daymaster_analysis" class="mt-2 p-3 bg-blue-50 max-w-2xl">
       <div class="text-[10px]">
        <span class="font-semibold">Day Master:</span> 
        {{ chartData?.daymaster_analysis?.daymaster }} 
@@ -1256,9 +1293,9 @@
      </div>
      
      <!-- Analysis Period Info -->
-     <div v-if="chartData?.analysis_info && (chartData.analysis_info.has_luck_pillar || chartData.analysis_info.has_annual || chartData.analysis_info.has_monthly || chartData.analysis_info.has_daily || chartData.analysis_info.has_hourly)" class="mt-2 p-2 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 max-w-2xl">
+     <div v-if="chartData?.analysis_info && (chartData.analysis_info.has_luck_pillar || chartData.analysis_info.has_annual || chartData.analysis_info.has_monthly || chartData.analysis_info.has_daily || chartData.analysis_info.has_hourly)" class="mt-2 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 max-w-2xl">
       <div class="text-[10px] font-semibold text-indigo-900 mb-1">📅 Analysis Period</div>
-      <div class="grid grid-cols-2 gap-1 text-[9px]">
+      <div class="grid grid-cols-2 gap-1 text-[10px]">
        <div v-if="chartData.analysis_info.year">
         <span class="font-medium text-indigo-700">Year:</span> 
         <span class="text-gray-700">{{ chartData.analysis_info.year }}</span>
@@ -1276,7 +1313,7 @@
         <span class="text-gray-700">{{ chartData.analysis_info.time }}</span>
        </div>
       </div>
-      <div class="mt-1.5 pt-1.5 border-t border-indigo-200 text-[9px] text-indigo-600">
+      <div class="mt-1.5 pt-1.5 border-t border-indigo-200 text-[10px] text-indigo-600">
        <div class="flex flex-wrap gap-1">
         <span v-if="chartData.analysis_info.has_luck_pillar" class="px-2 py-0.5 bg-purple-100 text-purple-700 ">10-Year Luck</span>
         <span v-if="chartData.analysis_info.has_annual" class="px-2 py-0.5 " style="background: #FEF3C7; color: #92400E; border: 1px solid #D97706;">Annual ✓</span>
@@ -1292,17 +1329,17 @@
      </div>
      
      <!-- Current Luck Pillar Timing Info -->
-     <div v-if="currentLuckPillar" class="mt-2 p-2 bg-purple-50 border border-purple-200 max-w-2xl">
+     <div v-if="currentLuckPillar" class="mt-2 p-3 bg-purple-50 border border-purple-200 max-w-2xl">
       <div class="text-[10px] font-semibold text-purple-900 mb-1">Current 10-Year Luck Pillar</div>
-      <div class="text-[9px]">
+      <div class="text-[10px]">
        <span class="font-medium">Period:</span> 
        {{ currentLuckPillar.timing.start_year }} - {{ currentLuckPillar.timing.end_year }}
       </div>
-      <div class="text-[9px]">
+      <div class="text-[10px]">
        <span class="font-medium">Age Range:</span> 
        {{ Math.floor(currentLuckPillar.timing.start_age) }} - {{ Math.floor(currentLuckPillar.timing.end_age) }} years old
       </div>
-      <div class="text-[9px] text-purple-700 mt-1 bg-purple-100 border border-purple-300 p-2 rounded">
+      <div class="text-[10px] text-purple-700 mt-1 bg-purple-100 border border-purple-300 p-3 rounded">
        <strong>⏰ Temporal Overlay:</strong> The 10-year luck pillar is a <strong>time period</strong> that overlays your entire natal chart.
        It interacts with <strong>all four natal pillars</strong> (Year, Month, Day, Hour) <strong>equally and adjacently</strong>,
        regardless of its visual position in the UI. This reflects authentic BaZi metaphysics where luck periods are temporal influences, not spatial positions.
@@ -1310,10 +1347,10 @@
       
       <!-- Luck Pillar Interactions -->
       <div v-if="luckPillarInteractions.length > 0" class="mt-1.5 pt-1.5 border-t border-purple-200">
-       <div class="text-[9px] font-semibold text-purple-900 mb-1">Interactions with Natal Chart:</div>
+       <div class="text-[10px] font-semibold text-purple-900 mb-1">Interactions with Natal Chart:</div>
        <div class="space-y-0.5">
         <div v-for="(interaction, idx) in luckPillarInteractions" :key="idx" 
-           class="text-[9px] p-1 rounded"
+           class="text-[10px] p-1 rounded"
            :class="interaction.effect === 'positive' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
          <span class="font-medium" :class="interaction.effect === 'positive' ? 'text-green-700' : 'text-red-700'">
           {{ interaction.label }}
@@ -1322,7 +1359,7 @@
         </div>
        </div>
       </div>
-      <div v-else class="mt-1.5 pt-1.5 border-t border-purple-200 text-[9px] text-gray-600">
+      <div v-else class="mt-1.5 pt-1.5 border-t border-purple-200 text-[10px] text-gray-600">
        No major interactions (harmonies/clashes) detected with natal chart.
       </div>
      </div>
@@ -1331,11 +1368,90 @@
     </div>
    </div>
   </main>
+  
+  <!-- Wu Xing Element Chart - Floating Bottom Bar (outside main container) -->
+  <div v-if="chartData?.daymaster_analysis" style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; z-index: 9999 !important; background-color: white; border-top: 2px solid #9ca3af; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); padding: 0.75rem;">
+   <div class="mx-auto" style="max-width: 800px;">
+    <div class="flex items-center justify-between mb-1.5">
+     <h3 class="text-xs font-semibold text-gray-800">五行 Wu Xing Elements</h3>
+     <!-- View Mode Toggle -->
+     <div class="flex items-center gap-2">
+      <span class="text-xs text-gray-600">View:</span>
+      <div class="flex bg-gray-100 p-0.5">
+       <button
+        @click="viewMode = 'base'"
+        :class="[
+         'px-2 py-0.5 text-xs transition-all',
+         viewMode === 'base' 
+          ? 'bg-white text-gray-900 shadow-sm' 
+          : 'text-gray-600 hover:text-gray-900'
+        ]"
+       >
+        Base
+       </button>
+       <button
+        @click="viewMode = 'post'"
+        :class="[
+         'px-2 py-0.5 text-xs transition-all',
+         viewMode === 'post' 
+          ? 'bg-white text-gray-900 shadow-sm' 
+          : 'text-gray-600 hover:text-gray-900'
+        ]"
+       >
+        Post Interaction
+       </button>
+      </div>
+     </div>
+    </div>
+    <div class="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+     <div>
+      <span v-if="viewMode === 'base'" class="text-blue-700 font-medium">Base: 8 natal nodes, no interactions</span>
+      <span v-else class="text-indigo-700 font-medium">Post: All nodes (natal + luck + talisman + location) with interactions</span>
+     </div>
+     <div>Total: {{ Math.round(viewMode === 'base' ? naiveTotal : finalTotal) }}%</div>
+    </div>
+    <div class="space-y-1">
+     <div v-for="element in fiveElementsWithRelations" :key="element.name">
+      <div class="flex justify-between items-center text-[10px] mb-0.5">
+       <div class="flex items-center gap-1">
+        <span :class="getElementColor(element.name)" class="font-medium">{{ element.name }}</span>
+        <span v-if="element.relationship" class="text-[8px] px-0.5 py-0 bg-gray-100 text-gray-600">{{ element.relationship }}</span>
+        <span v-if="viewMode === 'post' && element.change > 0" class="text-[8px] px-0.5 py-0 bg-green-50 text-green-600 opacity-80">↑</span>
+        <span v-else-if="viewMode === 'post' && element.change < 0" class="text-[8px] px-0.5 py-0 bg-red-50 text-red-600 opacity-80">↓</span>
+       </div>
+       <span class="text-gray-600 text-[10px]">
+        <template v-if="viewMode === 'base'">{{ Math.round(element.naiveRaw) }}pts ({{ Math.round(element.naive) }}%)</template>
+        <template v-else>{{ Math.round(element.naiveRaw) }}→{{ Math.round(element.finalRaw) }}pts ({{ Math.round(element.naive) }}→{{ Math.round(element.final) }}%<span :class="element.change > 0 ? 'text-green-600 font-medium' : element.change < 0 ? 'text-red-600 font-medium' : 'text-gray-400'">{{ element.change > 0 ? '+' : '' }}{{ Math.round(element.change) }}%</span>)</template>
+       </span>
+      </div>
+      <div class="relative h-4 bg-gray-100 overflow-hidden">
+       <div class="absolute inset-0 flex"><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5 border-r border-gray-200"></div><div class="w-1/5"></div></div>
+       <template v-if="viewMode === 'base'">
+        <div class="absolute top-0 left-0 h-full transition-all duration-500" :class="getElementBgColor(element.name)" :style="`width: ${Math.min((element.naive / maxElementScore) * 100, 100)}%`"></div>
+        <div class="absolute top-0 h-full flex items-center transition-all duration-500" :style="`left: ${Math.min((element.naive / maxElementScore) * 100, 100)}%`"><span class="ml-1 text-[8px] font-medium text-gray-700">{{ Math.round((element.naive / maxElementScore) * 100) }}%</span></div>
+       </template>
+       <template v-else>
+        <template v-if="element.change > 0">
+         <div class="absolute top-0 left-0 h-full rounded-l transition-all duration-500" :class="getElementBgColor(element.name)" :style="`width: ${Math.min((element.naive / maxElementScore) * 100, 100)}%`"></div>
+         <div class="absolute top-0 h-full rounded-r transition-all duration-500" :class="getElementBgColor(element.name)" :style="`left: ${Math.min((element.naive / maxElementScore) * 100, 100)}%; width: ${Math.min(((element.final - element.naive) / maxElementScore) * 100, 100 - (element.naive / maxElementScore) * 100)}%; background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.2) 2px, rgba(255,255,255,0.2) 4px);`"></div>
+        </template>
+        <template v-else>
+         <div class="absolute top-0 left-0 h-full transition-all duration-500" :class="[element.change < 0 ? 'border border-dotted' : 'border', getElementBorderColor(element.name)]" :style="`width: ${Math.min((element.naive / maxElementScore) * 100, 100)}%; background-color: transparent;`"></div>
+         <div class="absolute top-0 left-0 h-full transition-all duration-700" :class="[getElementBgColor(element.name), element.change < 0 ? 'opacity-80' : '']" :style="`width: ${Math.min((element.final / maxElementScore) * 100, 100)}%`"></div>
+        </template>
+        <div class="absolute top-0 h-full flex items-center transition-all duration-500" :style="`left: ${Math.min((element.final / maxElementScore) * 100, 100)}%`"><span class="ml-1 text-[8px] font-medium text-gray-700">{{ Math.round((element.final / maxElementScore) * 100) }}%</span></div>
+       </template>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  
  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, shallowRef, markRaw, computed, onMounted, watch, nextTick } from 'vue'
 
 // LocalStorage keys
 const STORAGE_KEY = 'bazingse_form_data'
@@ -1511,6 +1627,14 @@ function isValidJiaziPair(hs, eb) {
   return JIAZI_60.some(pair => pair.stem === hs && pair.branch === eb)
 }
 
+// Helper: Map luck pillar display index to backend position for node IDs
+// Display: [0=HourLuck, 1=DayLuck, 2=MonthLuck, 3=AnnualLuck, 4=10YLuck]
+// Backend: [8=HourLuck, 7=DayLuck, 6=MonthLuck, 5=AnnualLuck, 4=10YLuck]
+function getLuckPosition(displayIndex) {
+ const positions = [8, 7, 6, 5, 4]
+ return positions[displayIndex] ?? displayIndex
+}
+
 // Computed: Check if any talisman pair is invalid
 const hasInvalidTalismanPairs = computed(() => {
   return !isValidJiaziPair(talismanYearHS.value, talismanYearEB.value) ||
@@ -1524,8 +1648,19 @@ const birthDate = ref(savedData?.birthDate || '1992-07-06')
 const birthTime = ref(savedData?.birthTime || '09:30')
 const gender = ref(savedData?.gender || 'female')
 const isLoading = ref(false)
-const chartData = ref(null)
+const chartData = ref(null) // Keep as ref for reactivity
+const chartGeneration = ref(0) // Generation counter to force minimal re-renders
 const currentLuckPillar = ref(null) // Current 10-year luck pillar
+
+// Valid year range for analysis: birth year to birth year + 120
+const minAnalysisYear = computed(() => {
+ if (!birthDate.value) return 1900
+ return new Date(birthDate.value).getFullYear()
+})
+const maxAnalysisYear = computed(() => {
+ if (!birthDate.value) return 2100
+ return new Date(birthDate.value).getFullYear() + 120
+})
 const annualLuckPillar = ref(null) // Current annual luck pillar
 const unknownHour = ref(savedData?.unknownHour || false)
 
@@ -1623,22 +1758,27 @@ function initializePillarInputs() {
 // Debounce timer
 let debounceTimer = null
 
-// Handle input changes with debounce
+// Save scroll position before updates
+let savedScrollPosition = 0
+
+// Handle input changes WITHOUT triggering chart updates
 function handleInputChange() {
  updateDateFromPillars()
- 
- // Save to localStorage
+ // Save to localStorage only
+ saveToStorage()
+ // DO NOT generate chart - wait for blur event
+}
+
+// Trigger chart update INSTANTLY on blur (no debounce)
+function triggerChartUpdate() {
+ updateDateFromPillars()
  saveToStorage()
  
- // Clear existing timer
- if (debounceTimer) {
-  clearTimeout(debounceTimer)
- }
+ // Save current scroll position
+ savedScrollPosition = window.scrollY
  
- // Set new timer to generate chart after 500ms of no changes
- debounceTimer = setTimeout(() => {
-  generateChart()
- }, 500)
+ // Generate chart IMMEDIATELY - no delays
+ generateChart()
 }
 
 // Handle unknown hour toggle
@@ -1647,7 +1787,7 @@ function handleUnknownHourChange() {
   // Restore to default time when unchecking unknown
   birthTime.value = '12:00'
  }
- handleInputChange()
+ triggerChartUpdate()
 }
 
 // Load a preset test case
@@ -1682,14 +1822,21 @@ function loadPreset(preset) {
  generateChart()
 }
 
-// Handle analysis mode toggle
-function handleAnalysisModeToggle() {
- if (showAnalysisPeriod.value && !analysisYear.value) {
-  // Pre-fill with current year for convenience
+// Auto-set year to current year when Time Travel is enabled
+watch(showAnalysisPeriod, (newValue) => {
+ if (newValue && !analysisYear.value) {
   analysisYear.value = new Date().getFullYear()
+  handleInputChange()
  }
- handleInputChange()
-}
+})
+
+// Auto-fill year when deleted/empty
+watch(analysisYear, (newValue) => {
+ if (showAnalysisPeriod.value && !newValue) {
+  analysisYear.value = new Date().getFullYear()
+  handleInputChange()
+ }
+})
 
 // Watch for cascading resets when toggles are disabled
 watch(includeAnnualLuck, (newValue) => {
@@ -2778,18 +2925,57 @@ const natalAndLuckPillars = computed(() => {
 })
 
 // Talisman display row (4 slots aligned: hour, day, month, year)
+// ALWAYS show structure (skeleton when showTalismans is OFF)
 const talismanPillarsDisplay = computed(() => {
- if (!talismanPillarsOrdered.value) return []
+ // Always return 4 slots: [hour, day, month, year]
+ const display = [null, null, null, null]
  
- const talismans = talismanPillarsOrdered.value
- const display = [null, null, null, null] // [hour, day, month, year]
+ // Fill in actual data ONLY if showTalismans is enabled AND data available
+ if (showTalismans.value && talismanPillarsOrdered.value) {
+  talismanPillarsOrdered.value.forEach(t => {
+   if (t.isTalismanHour) display[0] = t
+   else if (t.isTalismanDay) display[1] = t
+   else if (t.isTalismanMonth) display[2] = t
+   else if (t.isTalismanYear) display[3] = t
+  })
+ }
  
- talismans.forEach(t => {
-  if (t.isTalismanHour) display[0] = t
-  else if (t.isTalismanDay) display[1] = t
-  else if (t.isTalismanMonth) display[2] = t
-  else if (t.isTalismanYear) display[3] = t
- })
+ // Create skeleton pillars - ALWAYS show structure
+ if (!display[0]) display[0] = { isTalismanHour: true, isEmpty: true }
+ if (!display[1]) display[1] = { isTalismanDay: true, isEmpty: true }
+ if (!display[2]) display[2] = { isTalismanMonth: true, isEmpty: true }
+ if (!display[3]) display[3] = { isTalismanYear: true, isEmpty: true }
+ 
+ return display
+})
+
+// Luck pillars display grid (5 slots aligned with natal)
+// [Hourly, Daily, Monthly, Annual, 10Y] - aligned with [Hour, Day, Month, Year] natal above
+// ALWAYS show structure (skeleton pillars when showAnalysisPeriod is OFF)
+const luckPillarsDisplay = computed(() => {
+ // Always return structure, even when Time Travel is OFF
+ 
+ // 5 slots: [Hourly, Daily, Monthly, Annual, 10Y]
+ const display = [null, null, null, null, null]
+ 
+ // Fill in actual data ONLY if Time Travel is ON and checkbox is enabled
+ if (showAnalysisPeriod.value && luckPillarsOrdered.value) {
+  luckPillarsOrdered.value.forEach(lp => {
+   if (lp.isHourlyLuck && includeHourlyLuck.value) display[0] = lp
+   else if (lp.isDailyLuck && includeDailyLuck.value) display[1] = lp
+   else if (lp.isMonthlyLuck && includeMonthlyLuck.value) display[2] = lp
+   else if (lp.isAnnualLuck && includeAnnualLuck.value) display[3] = lp
+   else if (lp.isLuckPillar) display[4] = lp  // 10Y doesn't have checkbox (always show if available)
+  })
+ }
+ 
+ // Create skeleton pillars - ALWAYS show structure
+ if (!display[0]) display[0] = { isHourlyLuck: true, isEmpty: true }
+ if (!display[1]) display[1] = { isDailyLuck: true, isEmpty: true }
+ if (!display[2]) display[2] = { isMonthlyLuck: true, isEmpty: true }
+ if (!display[3]) display[3] = { isAnnualLuck: true, isEmpty: true }
+ // 10Y skeleton always shows (even when Time Travel is OFF)
+ if (!display[4]) display[4] = { isLuckPillar: true, isEmpty: true }
  
  return display
 })
@@ -3030,6 +3216,9 @@ const luckPillarInteractions = computed(() => {
 
 // Methods
 async function generateChart() {
+ const startTime = performance.now()
+ console.log('🚀 generateChart() started')
+ 
  if (!birthDate.value) {
   if (typeof window !== 'undefined') {
    alert('Please fill in birth date')
@@ -3047,10 +3236,12 @@ async function generateChart() {
   return
  }
  
- isLoading.value = true
+ // DO NOT show loading indicator - it causes flicker
+ // isLoading.value = true
  try {
   // Build API URL with analyze_bazi endpoint (underscore, not hyphen)
-  let apiUrl = `/api/bazi/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(timeParam)}&gender=${gender.value}`
+  // Call via Vite proxy to avoid CORS issues
+  let apiUrl = `/api/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(timeParam)}&gender=${gender.value}`
   
   // Only add analysis parameters if time travel mode is enabled (🔮 toggle is ON)
   if (showAnalysisPeriod.value) {
@@ -3107,8 +3298,21 @@ async function generateChart() {
   if (!response.ok) throw new Error('Chart API request failed')
   
   const data = await response.json()
-  console.log('Chart data from analyze_bazi received:', data)
-  chartData.value = data
+  const parseTime = performance.now()
+  console.log(`⏱️  API call + JSON parse: ${(parseTime - startTime).toFixed(2)}ms`)
+  
+  // Deep freeze the data to prevent Vue from making it reactive
+  // This stops Vue from creating getters/setters for every nested property
+  const frozenData = Object.freeze(JSON.parse(JSON.stringify(data)))
+  const freezeTime = performance.now()
+  console.log(`❄️  Data freeze: ${(freezeTime - parseTime).toFixed(2)}ms`)
+  
+  // Update chart data with frozen object
+  chartData.value = frozenData
+  chartGeneration.value++ // Increment to trigger targeted re-renders
+  const updateTime = performance.now()
+  console.log(`🔄 Vue update: ${(updateTime - freezeTime).toFixed(2)}ms`)
+  console.log(`✅ TOTAL TIME: ${(updateTime - startTime).toFixed(2)}ms`)
   
   // Extract 10-year luck pillar info from response (if has_luck_pillar flag is true)
   if (data.analysis_info?.has_luck_pillar && data.hs_10yl && data.eb_10yl) {
@@ -3185,14 +3389,30 @@ async function generateChart() {
   console.error('Error details:', {
    message: error.message,
    stack: error.stack,
-   apiUrl: `/api/bazi/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(birthTime.value || 'unknown')}&gender=${gender.value}`
+   apiUrl: `/api/analyze_bazi?birth_date=${birthDate.value}&birth_time=${encodeURIComponent(birthTime.value || 'unknown')}&gender=${gender.value}`
   })
   if (typeof window !== 'undefined') {
    alert(`Failed to generate chart: ${error.message || 'Unknown error'}. Check console for details.`)
   }
  } finally {
-  isLoading.value = false
-  console.log('isLoading set to false')
+  // isLoading.value = false
+  const loadingEndTime = performance.now()
+  console.log(`⌛ Loading indicator off: ${(loadingEndTime - startTime).toFixed(2)}ms`)
+  
+  // Restore scroll position after render completes using nextTick and requestAnimationFrame
+  await nextTick()
+  const nextTickTime = performance.now()
+  console.log(`⏳ nextTick complete: ${(nextTickTime - loadingEndTime).toFixed(2)}ms`)
+  
+  requestAnimationFrame(() => {
+   const rafTime = performance.now()
+   console.log(`🎬 requestAnimationFrame: ${(rafTime - nextTickTime).toFixed(2)}ms`)
+   console.log(`🏁 GRAND TOTAL: ${(rafTime - startTime).toFixed(2)}ms\n`)
+   
+   if (savedScrollPosition > 0) {
+    window.scrollTo({ top: savedScrollPosition, behavior: 'instant' })
+   }
+  })
  }
 }
 
@@ -3877,10 +4097,10 @@ function getTransformationBadgeStyles(transformation) {
 
 function getTransformationSizeClass(strength) {
  const sizeClasses = {
-  ultra_strong: 'w-8 h-8 text-xs',   // 32px
-  strong: 'w-7 h-7 text-[11px]',    // 28px
-  normal: 'w-6 h-6 text-[10px]',    // 24px (current default)
-  weak: 'w-5 h-5 text-[9px]'      // 20px
+  ultra_strong: 'w-8 h-10 text-xs',   // 32px
+  strong: 'w-7 h-7 text-xs',    // 28px
+  normal: 'w-5 h-5 text-[10px]',    // 24px (current default)
+  weak: 'w-5 h-5 text-[10px]'      // 20px
  }
  return sizeClasses[strength] || sizeClasses.normal
 }
@@ -3898,10 +4118,10 @@ function getStrengthIndicator(strength) {
 // Combination badge size classes
 function getCombinationBadgeSizeClass(strength) {
  const sizeClasses = {
-  ultra_strong: 'w-6 h-6 text-xs',      // 24px
+  ultra_strong: 'w-5 h-5 text-xs',      // 24px
   strong: 'w-5 h-5 text-[10px]',        // 20px
-  normal: 'w-4 h-4 text-[8px]',         // 16px (default)
-  weak: 'w-3 h-3 text-[7px]'            // 12px
+  normal: 'w-5 h-5 text-[8px]',         // 16px (default)
+  weak: 'w-3 h-3 text-[8px]'            // 12px
  }
  return sizeClasses[strength] || sizeClasses.normal
 }
@@ -4042,10 +4262,10 @@ function getNegativeBadgeSymbol(negative) {
 
 function getNegativeBadgeSizeClass(strength) {
  const sizeClasses = {
-  ultra_strong: 'w-6 h-6 text-[10px]',      // 24px container, smaller text
+  ultra_strong: 'w-5 h-5 text-[10px]',      // 24px container, smaller text
   strong: 'w-5 h-5 text-[8px]',            // 20px container, smaller text
-  normal: 'w-4 h-4 text-[7px]',            // 16px container, smaller text
-  weak: 'w-3 h-3 text-[6px]'               // 12px container, smaller text
+  normal: 'w-5 h-5 text-[8px]',            // 16px container, smaller text
+  weak: 'w-5 h-5 text-[8px]'               // 12px container, smaller text
  }
  return sizeClasses[strength] || sizeClasses.normal
 }
@@ -4742,16 +4962,21 @@ function isInteractionHighlighted(interaction) {
 </script>
 
 <style scoped>
-/* Hide the clock icon in time input */
-.hour-input-no-icon::-webkit-calendar-picker-indicator {
- display: none;
+/* Eliminate all transitions - instant updates */
+* {
+  transition: none !important;
+  animation: none !important;
 }
-.hour-input-no-icon::-webkit-inner-spin-button,
-.hour-input-no-icon::-webkit-clear-button {
- display: none;
+
+/* Force GPU acceleration for smooth rendering */
+.w-28, .relative {
+  will-change: contents;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
-/* For Firefox */
-.hour-input-no-icon {
- -moz-appearance: textfield;
+
+/* Prevent layout thrashing */
+.relative {
+  contain: layout paint style;
 }
 </style>
